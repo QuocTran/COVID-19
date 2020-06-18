@@ -81,7 +81,7 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             name='Last day of fitted data'
         ))
     fig.update_layout(
-        title="Daily " + local,
+        title="Covid19 Daily " + local,
         yaxis_title="Death",
         hovermode='x',
         legend_title='<b> Death </b>',
@@ -123,7 +123,7 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             name='Last day of fitted data'
         ))
     fig.update_layout(
-        title="Cumulative " + local,
+        title="Covid19 Cumulative " + local,
         yaxis_title="Death",
         hovermode='x',
         legend_title='<b> Death </b>'
