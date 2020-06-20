@@ -280,7 +280,7 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_
     # Use default slope when data is not enough to fit last line, less than 4 data point, with contain_rate=1 mean slope
     # is the same as previous slope (same policy) and 0 mean (relax 100%) slope will be same as before lockdown
     # import pdb;pdb.set_trace()
-    if ((data_end_date_idx-break_points[-2]) < 4) | (model_beta[-1]>model_beta[1]):
+    if ((data_end_date_idx-break_points[-2]) < 4) | (model_beta[-1] > max(0.3, abs(model_beta[1]))):
         model_beta[-1] = (-model_beta[-2])*(1-contain_rate)
         print("Use default last slope due to not enough data")
         variance = log_predicted_death_pred_var[sum(forecast_time_idx <= break_points[-2])]
