@@ -102,12 +102,12 @@ def get_relax_date_by_country(country):
     try:
         relax_date = pd.to_datetime(get_lockdown_date_global().loc[country][1])
     except KeyError:
-        relax_date = dt.date.today() + dt.timedelta(14)
+        relax_date = dt.date.today() + dt.timedelta(30)
         #relax_date = None
     if relax_date>pd.to_datetime('2020/01/01'):
         return relax_date
     else:
-        return dt.date.today() + dt.timedelta(14)
+        return dt.date.today() + dt.timedelta(30)
 
 
 def get_lockdown_date_US(csv_file='data/lockdown_date_state_US.csv'):
@@ -127,12 +127,12 @@ def get_relax_date_by_state_US(state):
     try:
         relax_date = pd.to_datetime(get_lockdown_date_US().loc[state][1])
     except KeyError:
-        relax_date = dt.date.today() + dt.timedelta(14)
+        relax_date = dt.date.today() + dt.timedelta(30)
         #relax_date = None
     if relax_date>pd.to_datetime('2020/01/01'):
         return relax_date
     else:
-        return dt.date.today() + dt.timedelta(14)
+        return dt.date.today() + dt.timedelta(30)
 
 
 def get_daily_data(cum_data):
