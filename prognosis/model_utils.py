@@ -48,12 +48,20 @@ def get_data(file_template='../csse_covid_19_data/csse_covid_19_time_series/time
     type = enum('deaths', 'confirmed', 'recovered'),
     scope = enum('global', 'US')
     """
-    death_data = pd.read_csv(file_template.format(type=type, scope=scope))
-    return death_data.rename(index=str, columns={"Country/Region": "Country",
+    csv_data = pd.read_csv(file_template.format(type=type, scope=scope))
+    return csv_data.rename(index=str, columns={"Country/Region": "Country",
                                                  "Province/State": "State",
                                                  "Country_Region": "Country",
                                                  "Province_State": "State",
                                                  "Admin2": "County"})
+
+
+def get_US_State_hospital_cap_data(file_template='data/Hospital_Capacity_by_State_Harvard.csv'):
+    """
+    Get total hospital beds and ICUs for all US states
+    """
+    csv_data = pd.read_csv(file_template, index_col='State')
+    return csv_data
 
 
 def get_data_by_country(country, type='deaths'):

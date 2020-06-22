@@ -122,6 +122,7 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
+
     fig.update_layout(
         title="Covid19 Cumulative " + local,
         yaxis_title="Death",
@@ -226,9 +227,9 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             name='Last day of fitted data'
         ))
     fig.update_layout(
-        title="Daily",
+        title="Covid19 Daily " + local,
         hovermode='x',
-        legend_title='<b> Number of people </b>',
+        legend_title='<b> Number of ... </b>',
     )
 
     st.plotly_chart(fig)
@@ -277,10 +278,27 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
+    if scope == 'State':
+        hospital_cap = mu.get_US_State_hospital_cap_data()
+        try:
+            fig.add_trace(go.Scatter(
+                x=x,
+                y=[hospital_cap.loc[local].Total_Hospital_Beds]*len(x),
+                mode='lines',
+                name='hospital beds capacity'
+            ))
+            fig.add_trace(go.Scatter(
+                x=x,
+                y=[hospital_cap.loc[local].Total_ICU_Beds] * len(x),
+                mode='lines',
+                name='ICU beds capacity'
+            ))
+        except KeyError:
+            pass
     fig.update_layout(
-        title="Cumulative",
+        title="Covid19 Cumulative " + local,
         hovermode='x',
-        legend_title='<b> Number of people </b>',
+        legend_title='<b> Number of ... </b>',
     )
 
     st.plotly_chart(fig)
