@@ -28,17 +28,26 @@ st.markdown(hide_menu_style, unsafe_allow_html=True)
 st.markdown('COVID-19:  The prognosis for next 2 months. '
             ' How many hospital beds or ICU needed? In every countries and US states. ')
 
-def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug, show_data,
-         back_test, last_data_date):
+
+def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
+         show_data, back_test, last_data_date):
     data_load_state = st.text('Forecasting...')
     try:
         daily, cumulative, model_beta = forecast_fun(local,
                                                      forecast_horizon=forecast_horizon, lockdown_date=lockdown_date,
                                                      relax_date=relax_date,
                                                      back_test=back_test, last_data_date=last_data_date)
-    except ValueError:
-        st.error('Not enough fatality data to provide prognosis, please check input and lockdown date')
+    except ValueError as e:
+        st.error('Not enough fatality data to provide prognosis, also, please check input and lockdown date')
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, lockdown_date, relax_date, forecast_horizon,
+                              last_data_date, e], 'logs/app_errors.log')
         return None
+    except IndexError as e:
+        st.error('You found a bug in the code. Let me report it to my master!')
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, lockdown_date, relax_date, forecast_horizon,
+                              last_data_date, e], 'logs/app_errors.log')
+        return None
+
     data_load_state.text('Forecasting... done!')
 
     st.subheader('Deaths')
@@ -131,7 +140,6 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
     )
 
     st.plotly_chart(fig)
-
 
     if show_debug:
         log_fit, _ = debug_fun(local, forecast_horizon=forecast_horizon, lockdown_date=lockdown_date,
@@ -314,8 +322,9 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
         st.write('Cumulative metrics', cumulative)
     mu.append_row_2_logs([dt.datetime.today(), scope, local, model_beta], 'logs/fitted_models.csv')
 
+
 scope = st.sidebar.selectbox('Country or US State', ['Country', 'State'], index=0)
-if scope=='Country':
+if scope == 'Country':
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')

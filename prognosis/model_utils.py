@@ -277,7 +277,8 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_
     log_daily_death['time_idx'] = data_time_idx
     log_daily_death = log_daily_death.replace([np.inf, -np.inf], np.nan).dropna()
     break_points = np.array([data_start_date_idx,] +
-                            policy_effective_dates_idx[~np.isnan(policy_effective_dates_idx)].tolist() +
+                            policy_effective_dates_idx[(~np.isnan(policy_effective_dates_idx))&
+                                                       (policy_effective_dates_idx < forecast_end_date_idx)].tolist() +
                             [forecast_end_date_idx,])
     log_daily_death = remove_outliers(log_daily_death, break_points)
     regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death.time_idx.values, y=log_daily_death.death)
@@ -298,68 +299,6 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_
                 (log_predicted_death_pred_var[:sum(forecast_time_idx <= break_points[-2])],
                  log_predicted_death_pred_var_oos))
 
-    # log_daily_death_before = log_daily_death[log_daily_death.time_idx < 0]
-    # regr_before = linear_model.HuberRegressor(fit_intercept=True)
-    # regr_before.fit(log_daily_death_before.time_idx.values.reshape(-1, 1), log_daily_death_before.death)
-    # outliers_before = regr_before.outliers_
-    # log_predicted_death_before_values = regr_before.predict(forecast_time_idx[forecast_time_idx < 0].reshape(-1, 1))
-    # log_predicted_death_before_index = forecast_date_index[forecast_time_idx < 0]
-    # log_predicted_death_before = pd.DataFrame(log_predicted_death_before_values,
-    #                                           index=log_predicted_death_before_index)
-    # if all(forecast_time_idx < 0):
-    #     print("Lockdown is not effective in forecast range. Second model not needed")
-    #     outliers = outliers_before
-    #     regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death[~outliers].time_idx.values, y=log_daily_death[~outliers].death)
-    #     break_points = np.array([data_start_date_idx, data_end_date_idx])
-    #     regr_pw.fit_with_breaks(break_points)
-    #     variance = regr_pw.variance()
-    #     log_predicted_death_pred_var_oos = variance * (forecast_time_idx[forecast_time_idx > data_end_date_idx] -
-    #                                                    data_end_date_idx)
-    # elif all(data_time_idx <= 3):
-    #     print("Use default second model due to not enough data")
-    #
-    #     if (len(log_daily_death) - len(outliers_before))>0:
-    #         outliers_after = np.array([False] * (len(log_daily_death) - len(outliers_before)))
-    #         outliers = np.concatenate((outliers_before, outliers_after))
-    #     else:
-    #         outliers = outliers_before
-    #     regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death[~outliers].time_idx.values, y=log_daily_death[~outliers].death)
-    #     break_points = np.array([data_start_date_idx, 0, forecast_end_date_idx])
-    #     regr_pw.fit_with_breaks(break_points)
-    #     # Replace second slope by default value, learning from local with same temperature, transportation
-    #     regr_pw.beta[2]= -0.2
-    #     variance = regr_pw.variance()
-    #     log_predicted_death_pred_var_oos = variance*(forecast_time_idx[forecast_time_idx>data_end_date_idx]-
-    #                                                  data_end_date_idx)
-    #     print(regr_pw.variance())
-    #     print(len(forecast_time_idx[forecast_time_idx>data_end_date_idx]))
-    # else:
-    #     regr_after = linear_model.HuberRegressor(fit_intercept=True)
-    #     log_daily_death_after = log_daily_death[log_daily_death.time_idx >= 0]
-    #     regr_after.fit(log_daily_death_after.time_idx.values.reshape(-1, 1),
-    #                    log_daily_death_after.death)
-    #     outliers_after = regr_after.outliers_
-    #     outliers = np.concatenate((outliers_before, outliers_after))
-    #     regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death[~outliers].time_idx.values, y=log_daily_death[~outliers].death)
-    #     break_points = np.array([data_start_date_idx, 0, data_end_date_idx])
-    #     regr_pw.fit_with_breaks(break_points)
-    #     log_predicted_death_pred_var = regr_pw.prediction_variance(forecast_time_idx)
-    #     log_predicted_death_pred_var_oos = log_predicted_death_pred_var[sum(forecast_time_idx <= data_end_date_idx):]
-    #     #variance = regr_pw.variance()
-    #     #log_predicted_death_pred_var_oos = variance*(forecast_time_idx[forecast_time_idx>data_end_date_idx]-
-    #     #                                             data_end_date_idx)
-    #
-    # model_beta = regr_pw.beta
-    #
-    # if relax_date is not None:
-    #     relax_date = pd.to_datetime(relax_date)
-    #     relax_effective_date = relax_date + dt.timedelta(
-    #         INFECT_2_HOSPITAL_TIME + HOSPITAL_2_ICU_TIME + ICU_2_DEATH_TIME)
-    #     relax_effective_date_idx = (relax_effective_date - lockdown_effective_date).days
-    #     break_points = np.array([data_start_date_idx, 0, relax_effective_date_idx, forecast_end_date_idx])
-    #     model_beta = np.append(model_beta, ((model_beta[1] + model_beta[2]) * contain_rate +
-    #                                             model_beta[1] * (1 - contain_rate)) - (model_beta[1] + model_beta[2]))
-    #     log_predicted_death_pred_var_oos = log_predicted_death_pred_var_oos
     log_predicted_death_values = regr_pw.predict(forecast_time_idx, beta=model_beta, breaks=break_points)
 
     log_predicted_death_lower_bound_values = log_predicted_death_values - 1.96 * np.sqrt(log_predicted_death_pred_var)
@@ -381,7 +320,6 @@ def get_daily_predicted_death(local_death_data, forecast_horizon=60, lockdown_da
                                                                                   [lockdown_date, relax_date],
                                                                                   contain_rate)
     return np.exp(log_daily_predicted_death), np.exp(lb), np.exp(ub), model_beta
-
 
 
 def get_cumulative_predicted_death(local_death_data, forecast_horizon=60, lockdown_date=None,
