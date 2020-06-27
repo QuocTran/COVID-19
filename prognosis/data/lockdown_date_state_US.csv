@@ -1,8 +1,9 @@
 country,state,lockdown_date,Note,relax_date
 US,Puerto Rico,2020/03/16,Stay at home order,
-US,Alabama,2020/04/04,Stay at home order,2020/04/30
-US,Alaska,2020/03/28,Stay at home order,
-US,Arizona,2020/03/30,Stay at home order,
+US,Alabama,2020/04/04,Stay at home order,2020/05/11
+US,Alaska,2020/03/28,Stay at home order,2020/05/22
+US,Arizona,2020/03/30,Stay at home order,2020/05/16
+US,Arkansas,2020/03/27,Essential business closed,2020/05/18
 US,California,2020/03/19,Stay at home order,
 US,Colorado,2020/03/26,Stay at home order,2020/04/26
 US,Connecticut,2020/03/23,Non essential services closed,
@@ -45,4 +46,4 @@ US,Virginia,2020/03/30,Stay at home order,
 US,Washington,2020/03/23,Stay at home order,
 US,West Virginia,2020/03/25,Stay at home order,2020/05/04
 US,Wisconsin,2020/03/25,Stay at home order,2020/04/30
-US,Wyoming,2020/03/19,Educational facilities closed
+US,Wyoming,2020/03/19,Educational facilities closed,
