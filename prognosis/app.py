@@ -348,8 +348,9 @@ else:
 forecast_horizon = st.sidebar.slider('Forecast Horizon', value=60, min_value=30, max_value=90)
 show_debug = st.sidebar.checkbox('Show fitted log death', value=True)
 relax_date=None
-if st.sidebar.checkbox('Add lockdown end date', value=True):
-    relax_date = st.sidebar.date_input('when did lockdown end? Or significant policy change date?',
+if st.sidebar.checkbox('Add significant policy change date', value=True):
+    relax_date = st.sidebar.date_input('When did lock-down end? '
+                                       'Or significant policy change date such as "mask in public"?',
                                        relax_date_fun(local))
 'You selected: ', local, 'with lock down date: ', lockdown_date, ' and relax date ', relax_date,\
     '. Click **Run** on left sidebar to see forecast. Plot is interactive. Work best on desktop.'
