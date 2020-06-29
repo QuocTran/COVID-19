@@ -609,6 +609,16 @@ if st.checkbox('References'):
     st.markdown('2020/05/04 [Great resources on data](http://covid19.laiyaconsulting.com/source)')
     st.markdown('2020/05/06 [Country lock down dates]'
                 '(https://en.wikipedia.org/wiki/Curfews_and_lockdowns_related_to_the_COVID-19_pandemic)')
+    st.markdown('2020/06/29 [Harvard Global Health Institute US Hospital Capacity]'
+                '(https://globalepidemics.org/hospital-capacity/)')
+    st.markdown('2020/06/29 [Covid19 US policy changes Github]'
+                '(https://github.com/COVID19StatePolicy/SocialDistancing/)')
+    st.markdown('2020/06/29 [CDC Covid19 US Death forecast hub]'
+                '(https://www.cdc.gov/coronavirus/2019-ncov/covid-data/forecasting-us.html)')
+    st.markdown('2020/06/29 [JAMA Article: Nasal ACE2 Levels and COVID-19 in Children]'
+                '(https://jamanetwork.com/journals/jama/fullarticle/2766522)')
+    st.markdown('2020/06/29 [CDC Public Face Mask Recommendation]'
+                '(https://www.cdc.gov/coronavirus/2019-ncov/prevent-getting-sick/cloth-face-cover.html)')
 
 
     st.subheader('On the news')
@@ -635,3 +645,4 @@ if st.checkbox('Changelog'):
                 'hospital bed are in the same range with observed numbers now. ')
     st.markdown('2020/05/07 Added back test to visually evaluate model sensitivity to new data point')
     st.markdown('2020/06/11 Added lock down end date which allows modeling the relax phase')
+    st.markdown('2020/06/29 Added total hospital beds and ICU from Harvard data source')
