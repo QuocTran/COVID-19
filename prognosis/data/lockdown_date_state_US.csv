@@ -1,48 +1,49 @@
-country,state,lockdown_date,Note
-US,Puerto Rico,2020/03/16,Stay at home order
-US,Alabama,2020/04/04,Stay at home order
-US,Alaska,2020/03/28,Stay at home order
-US,Arizona,2020/03/30,Stay at home order
-US,California,2020/03/19,Stay at home order
-US,Colorado,2020/03/26,Stay at home order
-US,Connecticut,2020/03/23,Non essential services closed
-US,Delaware,2020/03/24,Stay at home order
-US,District of Columbia,2020/03/30,Stay at home order
-US,Florida,2020/04/03,Stay at home order
-US,Georgia,2020/04/03,Stay at home order
-US,Hawaii,2020/03/25,Stay at home order
-US,Idaho,2020/03/25,Stay at home order
-US,Illinois,2020/03/21,Stay at home order
-US,Indiana,2020/03/25,Stay at home order
-US,Iowa,2020/04/04,Educational facilities closed
-US,Kansas,2020/03/30,Stay at home order
-US,Kentucky,2020/03/26,Non essential services closed
-US,Louisiana,2020/03/23,Stay at home order
-US,Maine,2020/04/02,Stay at home order
-US,Maryland,2020/03/30,Stay at home order
-US,Massachusetts,2020/03/31,Non essential services closed
-US,Michigan,2020/03/24,Stay at home order
-US,Minnesota,2020/03/27,Stay at home order
-US,Mississippi,2020/04/03,Stay at home order
-US,Missouri,2020/04/06,Stay at home order
-US,Montana,2020/03/26,Stay at home order
-US,Nevada,2020/04/01,Stay at home order
-US,New Hampshire,2020/03/27,Stay at home order
-US,New Jersey,2020/03/21,Stay at home order
-US,New Mexico,2020/03/24,Non essential services closed
-US,New York,2020/03/22,Stay at home order
-US,North Carolina,2020/03/30,Stay at home order
-US,Ohio,2020/03/23,Stay at home order
-US,Oklahoma,2020/03/31,Non essential services closed
-US,Oregon,2020/03/23,Stay at home order
-US,Pennsylvania,2020/04/01,Stay at home order
-US,Rhode Island,2020/03/28,Stay at home order
-US,South Carolina,2020/04/07,Stay at home order
-US,Tennessee,2020/04/02,Stay at home order
-US,Texas,2020/04/02,Stay at home order
-US,Vermont,2020/03/24,Stay at home order
-US,Virginia,2020/03/30,Stay at home order
-US,Washington,2020/03/23,Stay at home order
-US,West Virginia,2020/03/25,Stay at home order
-US,Wisconsin,2020/03/25,Stay at home order
-US,Wyoming,2020/03/19,Educational facilities closed
+country,state,lockdown_date,Note,relax_date
+US,Puerto Rico,2020/03/16,Stay at home order,
+US,Alabama,2020/04/04,Stay at home order,2020/05/11
+US,Alaska,2020/03/28,Stay at home order,2020/05/22
+US,Arizona,2020/03/30,Stay at home order,2020/05/16
+US,Arkansas,2020/03/27,Essential business closed,2020/05/18
+US,California,2020/03/19,Stay at home order,2020/06/12
+US,Colorado,2020/03/26,Stay at home order,2020/04/26
+US,Connecticut,2020/03/23,Non essential services closed,2020/06/16
+US,Delaware,2020/03/24,Stay at home order,2020/06/01
+US,District of Columbia,2020/03/30,Stay at home order,2020/05/29
+US,Florida,2020/04/03,Stay at home order,2020/05/18
+US,Georgia,2020/04/03,Stay at home order,2020/04/30
+US,Hawaii,2020/03/25,Stay at home order,2020/05/07
+US,Idaho,2020/03/25,Stay at home order,2020/06/11
+US,Illinois,2020/03/21,Stay at home order,2020/05/01
+US,Indiana,2020/03/25,Stay at home order,2020/05/01
+US,Iowa,2020/04/04,Educational facilities closed,2020/05/01
+US,Kansas,2020/03/30,Stay at home order,2020/05/04
+US,Kentucky,2020/03/26,Non essential services closed,2020/05/22
+US,Louisiana,2020/03/23,Stay at home order,2020/05/15
+US,Maine,2020/04/02,Stay at home order,2020/04/30
+US,Maryland,2020/03/30,Stay at home order,2020/05/15
+US,Massachusetts,2020/03/31,Non essential services closed,2020/06/08
+US,Michigan,2020/03/24,Stay at home order,2020/06/01
+US,Minnesota,2020/03/27,Stay at home order,2020/05/04
+US,Mississippi,2020/04/03,Stay at home order,2020/05/12
+US,Missouri,2020/04/06,Stay at home order,2020/05/04
+US,Montana,2020/03/26,Stay at home order,2020/04/26
+US,Nevada,2020/04/01,Stay at home order,2020/05/29
+US,New Hampshire,2020/03/27,Stay at home order,2020/06/16
+US,New Jersey,2020/03/21,Stay at home order,2020/06/09
+US,New Mexico,2020/03/24,Non essential services closed,2020/05/15
+US,New York,2020/03/22,Stay at home order,2020/05/15
+US,North Carolina,2020/03/30,Stay at home order,
+US,Ohio,2020/03/23,Stay at home order,2020/04/04
+US,Oklahoma,2020/03/31,Non essential services closed,2020/05/30
+US,Oregon,2020/03/23,Stay at home order,2020/05/15
+US,Pennsylvania,2020/04/01,Stay at home order,
+US,Rhode Island,2020/03/28,Stay at home order,
+US,South Carolina,2020/04/07,Stay at home order,2020/05/04
+US,Tennessee,2020/04/02,Stay at home order,2020/04/30
+US,Texas,2020/04/02,Stay at home order,2020/04/30
+US,Vermont,2020/03/24,Stay at home order,
+US,Virginia,2020/03/30,Stay at home order,2020/05/26
+US,Washington,2020/03/23,Stay at home order,2020/05/18
+US,West Virginia,2020/03/25,Stay at home order,2020/05/04
+US,Wisconsin,2020/03/25,Stay at home order,2020/04/30
+US,Wyoming,2020/04/03,Quarantine,2020/05/15

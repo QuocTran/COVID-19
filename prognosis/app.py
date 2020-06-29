@@ -28,16 +28,26 @@ st.markdown(hide_menu_style, unsafe_allow_html=True)
 st.markdown('COVID-19:  The prognosis for next 2 months. '
             ' How many hospital beds or ICU needed? In every countries and US states. ')
 
-def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug, show_data,
-         back_test, last_data_date):
+
+def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
+         show_data, back_test, last_data_date):
     data_load_state = st.text('Forecasting...')
     try:
         daily, cumulative, model_beta = forecast_fun(local,
                                                      forecast_horizon=forecast_horizon, lockdown_date=lockdown_date,
+                                                     relax_date=relax_date,
                                                      back_test=back_test, last_data_date=last_data_date)
-    except ValueError:
-        st.error('Not enough fatality data to provide prognosis, please check input and lockdown date')
+    except ValueError as e:
+        st.error('Not enough fatality data to provide prognosis, also, please check input and lockdown date')
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, lockdown_date, relax_date, forecast_horizon,
+                              last_data_date, e], 'logs/app_errors.log')
         return None
+    except IndexError as e:
+        st.error('You found a bug in the code. Let me report it to my master!')
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, lockdown_date, relax_date, forecast_horizon,
+                              last_data_date, e], 'logs/app_errors.log')
+        return None
+
     data_load_state.text('Forecasting... done!')
 
     st.subheader('Deaths')
@@ -80,7 +90,7 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
             name='Last day of fitted data'
         ))
     fig.update_layout(
-        title="Daily " + local,
+        title="Covid19 Daily " + local,
         yaxis_title="Death",
         hovermode='x',
         legend_title='<b> Death </b>',
@@ -121,8 +131,9 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
+
     fig.update_layout(
-        title="Cumulative " + local,
+        title="Covid19 Cumulative " + local,
         yaxis_title="Death",
         hovermode='x',
         legend_title='<b> Death </b>'
@@ -130,10 +141,9 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
 
     st.plotly_chart(fig)
 
-
     if show_debug:
         log_fit, _ = debug_fun(local, forecast_horizon=forecast_horizon, lockdown_date=lockdown_date,
-                               back_test=back_test, last_data_date=last_data_date)
+                               relax_date=relax_date, back_test=back_test, last_data_date=last_data_date)
         fig = log_fit.rename(columns={'death':'observed', 'predicted_death': 'predicted'})\
             .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
         x = log_fit.index
@@ -179,7 +189,7 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
     st.subheader('Estimated Cases and Essential Resources')
     st.markdown('Since health care systems vary widely between geographic location, if this is used for planning, please'
                 ' check the advance box on the sidebar to update with the appropriate parameters')
-    fig = daily.drop(columns=['ICU', 'hospital_beds'], errors='ignore')\
+    fig = daily.rename(columns={'ICU': 'current_ICU', 'hospital_beds': 'current_hospital_beds'})\
         .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
     x = daily.index
     y_upper = daily.upper_bound.values
@@ -206,12 +216,15 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
             visible='legendonly',
             selector=dict(name=invisible)
         )
-    fig.update_traces(line = dict(dash='dot'))
+    fig.update_traces(line=dict(dash='dot'))
     for observe_ln in ['death', 'confirmed']:
         fig.update_traces(
-            line = dict(dash='solid'),
+            line=dict(dash='solid'),
             selector=dict(name=observe_ln)
         )
+    fig.update_traces(
+        line=dict(color='teal'),
+        selector=dict(name='confirmed'))
     if back_test:
         max_y = np.nanmax(y_upper)
         fig.add_trace(go.Scatter(
@@ -224,10 +237,29 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
+    if scope == 'State':
+        hospital_cap = mu.get_US_State_hospital_cap_data()
+        try:
+            fig.add_trace(go.Scatter(
+                x=x,
+                y=[hospital_cap.loc[local].Total_Hospital_Beds]*len(x),
+                mode='lines',
+                visible='legendonly',
+                name='total hospital beds capacity'
+            ))
+            fig.add_trace(go.Scatter(
+                x=x,
+                y=[hospital_cap.loc[local].Total_ICU_Beds] * len(x),
+                mode='lines',
+                visible='legendonly',
+                name='total ICU beds capacity'
+            ))
+        except KeyError:
+            pass
     fig.update_layout(
-        title="Daily",
+        title="Covid19 Daily " + local,
         hovermode='x',
-        legend_title='<b> Number of people </b>',
+        legend_title='<b> Number of ... </b>',
     )
 
     st.plotly_chart(fig)
@@ -276,10 +308,11 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
+
     fig.update_layout(
-        title="Cumulative",
+        title="Covid19 Cumulative " + local,
         hovermode='x',
-        legend_title='<b> Number of people </b>',
+        legend_title='<b> Number of ... </b>',
     )
 
     st.plotly_chart(fig)
@@ -295,8 +328,9 @@ def main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun,
         st.write('Cumulative metrics', cumulative)
     mu.append_row_2_logs([dt.datetime.today(), scope, local, model_beta], 'logs/fitted_models.csv')
 
+
 scope = st.sidebar.selectbox('Country or US State', ['Country', 'State'], index=0)
-if scope=='Country':
+if scope == 'Country':
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')
@@ -305,6 +339,7 @@ if scope=='Country':
                                           mu.get_lockdown_date_by_country(local))
     forecast_fun = mu.get_metrics_by_country
     debug_fun = mu.get_log_daily_predicted_death_by_country
+    relax_date_fun = mu.get_relax_date_by_country
 else:
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='US', type='deaths')
@@ -314,13 +349,17 @@ else:
                                           mu.get_lockdown_date_by_state_US(local))
     forecast_fun = mu.get_metrics_by_state_US
     debug_fun = mu.get_log_daily_predicted_death_by_state_US
+    relax_date_fun = mu.get_relax_date_by_state_US
 
-
-
-'You selected: ', local, 'with lock down date: ', lockdown_date, '. Click **Run** on left sidebar to see forecast. Plot' \
-                                                                 ' is interactive. Work best on desktop.'
 forecast_horizon = st.sidebar.slider('Forecast Horizon', value=60, min_value=30, max_value=90)
 show_debug = st.sidebar.checkbox('Show fitted log death', value=True)
+relax_date=None
+if st.sidebar.checkbox('Add significant policy change date', value=True):
+    relax_date = st.sidebar.date_input('When did lock-down end? '
+                                       'Or significant policy change date such as "mask in public"?',
+                                       relax_date_fun(local))
+'You selected: ', local, 'with lock down date: ', lockdown_date, ' and relax date ', relax_date,\
+    '. Click **Run** on left sidebar to see forecast. Plot is interactive. Work best on desktop.'
 show_data = st.sidebar.checkbox('Show raw output data')
 if st.sidebar.checkbox('Advance: change assumptions'):
     if st.sidebar.checkbox('Change rates'):
@@ -356,19 +395,20 @@ if back_test:
     'Run back test with data up to', last_data_date
 
 if st.sidebar.button('Run'):
-    main(scope, local, lockdown_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,show_data,
-         back_test, last_data_date)
-    model_params = [dt.datetime.today(), scope, local, lockdown_date, mu.DEATH_RATE, mu.ICU_RATE, mu.HOSPITAL_RATE,
+    main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
+         show_data, back_test, last_data_date)
+    model_params = [dt.datetime.today(), scope, local, lockdown_date, relax_date,
+                    mu.DEATH_RATE, mu.ICU_RATE, mu.HOSPITAL_RATE,
                     mu.SYMPTOM_RATE, mu.INFECT_2_HOSPITAL_TIME, mu.HOSPITAL_2_ICU_TIME, mu.ICU_2_DEATH_TIME, 
                     mu.ICU_2_RECOVER_TIME, mu.NOT_ICU_DISCHARGE_TIME, back_test, last_data_date]
     mu.append_row_2_logs(model_params)
 st.sidebar.subheader('Authors')
 st.sidebar.info(
 """
-Quoc Tran  
-Huong Huynh - Data Scientist - Virtual Power Systems - [LinkedIn](https://www.linkedin.com/in/huonghuynhsjsu) 
+Quoc Tran [LinkedIn](www.linkedin.com/in/quoc-tran-wml)  
+Huong Huynh [LinkedIn](https://www.linkedin.com/in/huonghuynhsjsu)  
 Feedback: hthuongsc@gmail.com  
-[Gibhub](https://github.com/QuocTran/COVID-19.git)  
+Source Code: [Gibhub](https://github.com/QuocTran/COVID-19.git)  
 Data Source: [JHU](https://coronavirus.jhu.edu/map.html)
 """
 )
@@ -594,3 +634,4 @@ if st.checkbox('Changelog'):
                 'now at 0.36%. All the other rates are changed accordingly. One extra bonus, our estimates on ICU and '
                 'hospital bed are in the same range with observed numbers now. ')
     st.markdown('2020/05/07 Added back test to visually evaluate model sensitivity to new data point')
+    st.markdown('2020/06/11 Added lock down end date which allows modeling the relax phase')

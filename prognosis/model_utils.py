@@ -48,12 +48,20 @@ def get_data(file_template='../csse_covid_19_data/csse_covid_19_time_series/time
     type = enum('deaths', 'confirmed', 'recovered'),
     scope = enum('global', 'US')
     """
-    death_data = pd.read_csv(file_template.format(type=type, scope=scope))
-    return death_data.rename(index=str, columns={"Country/Region": "Country",
+    csv_data = pd.read_csv(file_template.format(type=type, scope=scope))
+    return csv_data.rename(index=str, columns={"Country/Region": "Country",
                                                  "Province/State": "State",
                                                  "Country_Region": "Country",
                                                  "Province_State": "State",
                                                  "Admin2": "County"})
+
+
+def get_US_State_hospital_cap_data(file_template='data/Hospital_Capacity_by_State_Harvard.csv'):
+    """
+    Get total hospital beds and ICUs for all US states
+    """
+    csv_data = pd.read_csv(file_template, index_col='State')
+    return csv_data
 
 
 def get_data_by_country(country, type='deaths'):
@@ -78,7 +86,7 @@ def get_data_by_county_and_state(county, state, type='deaths'):
 
 
 def get_lockdown_date_global(csv_file='data/lockdown_date_country.csv'):
-    return pd.read_csv(csv_file)[['country', 'lockdown_date']].set_index('country')
+    return pd.read_csv(csv_file)[['country', 'lockdown_date', 'relax_date']].set_index('country')
 
 
 def get_lockdown_date_by_country(country):
@@ -90,8 +98,20 @@ def get_lockdown_date_by_country(country):
     return lockdown_date
 
 
+def get_relax_date_by_country(country):
+    try:
+        relax_date = pd.to_datetime(get_lockdown_date_global().loc[country][1])
+    except KeyError:
+        relax_date = dt.date.today() + dt.timedelta(30)
+        #relax_date = None
+    if relax_date>pd.to_datetime('2020/01/01'):
+        return relax_date
+    else:
+        return dt.date.today() + dt.timedelta(30)
+
+
 def get_lockdown_date_US(csv_file='data/lockdown_date_state_US.csv'):
-    return pd.read_csv(csv_file)[['state', 'lockdown_date']].set_index('state')
+    return pd.read_csv(csv_file)[['state', 'lockdown_date', 'relax_date']].set_index('state')
 
 
 def get_lockdown_date_by_state_US(state):
@@ -101,6 +121,18 @@ def get_lockdown_date_by_state_US(state):
         #lockdown_date = dt.date.today()
         lockdown_date = None
     return lockdown_date
+
+
+def get_relax_date_by_state_US(state):
+    try:
+        relax_date = pd.to_datetime(get_lockdown_date_US().loc[state][1])
+    except KeyError:
+        relax_date = dt.date.today() + dt.timedelta(30)
+        #relax_date = None
+    if relax_date>pd.to_datetime('2020/01/01'):
+        return relax_date
+    else:
+        return dt.date.today() + dt.timedelta(30)
 
 
 def get_daily_data(cum_data):
@@ -196,8 +228,21 @@ def get_number_ICU_need(daily_local_death_new):
     return ICU_n
 
 
-def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, lockdown_date=None,
-                                  relax_date=None, contain_rate=0.5):
+def remove_outliers(log_daily_death, break_points):
+    """ Remove outliers by running robust linear regression in each section"""
+    robust_reg = linear_model.HuberRegressor(fit_intercept=True)
+    outliers = np.array([], dtype=bool)
+    for i in range(len(break_points)-1):
+        data_train = log_daily_death.query('time_idx>={}&time_idx<{}'.format(break_points[i], break_points[i+1]))
+        try:
+            robust_reg.fit(data_train.time_idx.values.reshape(-1, 1), data_train.death)
+            outliers_pw = robust_reg.outliers_
+        except:
+            outliers_pw = np.array([False] * len(data_train), dtype=bool)
+        outliers = np.concatenate((outliers, outliers_pw))
+    return log_daily_death[~outliers]
+
+def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8):
     '''Since this is highly contagious disease. Daily new death, which is a proxy for daily new infected cases
     is model as d(t)=a*d(t-1) or equivalent to d(t) = b*a^(t). After a log transform, it becomes linear.
     log(d(t))=logb+t*loga, so we can use linear regression to provide forecast (use robust linear regressor to avoid
@@ -209,10 +254,11 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, lockdow
     WARNING: if lockdown_date is not provided, we will default to no lockdown to raise awareness of worst case
     if no action. If you have info on lockdown date please use it to make sure the model provide accurate result'''
     daily_local_death_new = get_daily_data(local_death_data)
-    daily_local_death_new = daily_local_death_new.rolling(3, min_periods=1).mean()
+    smoothing_days = 3
+    daily_local_death_new = daily_local_death_new.rolling(smoothing_days, min_periods=1).mean()
+    # Because of this smoothing step, we need to time var of prediction by smoothing_days=3.
     #shift ahead 1 day to avoid overfitted due to average of exponential value
     #daily_local_death_new = daily_local_death_new.shift(1)
-    #import pdb; pdb.set_trace()
     daily_local_death_new.columns = ['death']
     log_daily_death = np.log(daily_local_death_new)
     # log_daily_death.dropna(inplace=True)
@@ -220,87 +266,40 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, lockdow
     data_end_date = max(local_death_data.index)
     forecast_end_date = data_end_date + dt.timedelta(forecast_horizon)
     forecast_date_index = pd.date_range(start=data_start_date, end=forecast_end_date)
-    if lockdown_date is not None:
-        lockdown_date = pd.to_datetime(lockdown_date)
-    else:
-        lockdown_date = forecast_end_date
-    lockdown_effective_date = lockdown_date + dt.timedelta(
+    policy_effective_dates = pd.to_datetime(policy_change_dates) + dt.timedelta(
         INFECT_2_HOSPITAL_TIME + HOSPITAL_2_ICU_TIME + ICU_2_DEATH_TIME)
-    data_start_date_idx = (data_start_date - lockdown_effective_date).days
-    data_end_date_idx = (data_end_date - lockdown_effective_date).days
+    data_start_date_idx = 0
+    data_end_date_idx = (data_end_date - data_start_date).days
     forecast_end_date_idx = data_end_date_idx + forecast_horizon
-    forecast_time_idx = (forecast_date_index - lockdown_effective_date).days.values
-    data_time_idx = (log_daily_death.index - lockdown_effective_date).days.values
+    forecast_time_idx = (forecast_date_index - data_start_date).days.values
+    data_time_idx = (log_daily_death.index - data_start_date).days.values
+    policy_effective_dates_idx = (policy_effective_dates - data_start_date).days.values
     log_daily_death['time_idx'] = data_time_idx
     log_daily_death = log_daily_death.replace([np.inf, -np.inf], np.nan).dropna()
-    log_daily_death_before = log_daily_death[log_daily_death.time_idx < 0]
-    regr_before = linear_model.HuberRegressor(fit_intercept=True)
-    regr_before.fit(log_daily_death_before.time_idx.values.reshape(-1, 1), log_daily_death_before.death)
-    outliers_before = regr_before.outliers_
-    log_predicted_death_before_values = regr_before.predict(forecast_time_idx[forecast_time_idx < 0].reshape(-1, 1))
-    log_predicted_death_before_index = forecast_date_index[forecast_time_idx < 0]
-    log_predicted_death_before = pd.DataFrame(log_predicted_death_before_values,
-                                              index=log_predicted_death_before_index)
-    if all(forecast_time_idx < 0):
-        print("Lockdown is not effective in forecast range. Second model not needed")
-        outliers = outliers_before
-        regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death[~outliers].time_idx.values, y=log_daily_death[~outliers].death)
-        break_points = np.array([data_start_date_idx, data_end_date_idx])
-        regr_pw.fit_with_breaks(break_points)
-        variance = regr_pw.variance()
-        log_predicted_death_pred_var_oos = variance * (forecast_time_idx[forecast_time_idx > data_end_date_idx] -
-                                                       data_end_date_idx)
-    elif all(data_time_idx <= 3):
-        print("Use default second model due to not enough data")
-
-        if (len(log_daily_death) - len(outliers_before))>0:
-            outliers_after = np.array([False] * (len(log_daily_death) - len(outliers_before)))
-            outliers = np.concatenate((outliers_before, outliers_after))
-        else:
-            outliers = outliers_before
-        regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death[~outliers].time_idx.values, y=log_daily_death[~outliers].death)
-        break_points = np.array([data_start_date_idx, 0, forecast_end_date_idx])
-        regr_pw.fit_with_breaks(break_points)
-        # Replace second slope by default value, learning from local with same temperature, transportation
-        regr_pw.beta[2]= -0.2
-        variance = regr_pw.variance()
-        log_predicted_death_pred_var_oos = variance*(forecast_time_idx[forecast_time_idx>data_end_date_idx]-
-                                                     data_end_date_idx)
-        print(regr_pw.variance())
-        print(len(forecast_time_idx[forecast_time_idx>data_end_date_idx]))
-    else:
-        regr_after = linear_model.HuberRegressor(fit_intercept=True)
-        log_daily_death_after = log_daily_death[log_daily_death.time_idx >= 0]
-        regr_after.fit(log_daily_death_after.time_idx.values.reshape(-1, 1),
-                       log_daily_death_after.death)
-        outliers_after = regr_after.outliers_
-        outliers = np.concatenate((outliers_before, outliers_after))
-        regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death[~outliers].time_idx.values, y=log_daily_death[~outliers].death)
-        break_points = np.array([data_start_date_idx, 0, data_end_date_idx])
-        regr_pw.fit_with_breaks(break_points)
-        log_predicted_death_pred_var = regr_pw.prediction_variance(forecast_time_idx)
-        log_predicted_death_pred_var_oos = log_predicted_death_pred_var[sum(forecast_time_idx <= data_end_date_idx):]
-        #variance = regr_pw.variance()
-        #log_predicted_death_pred_var_oos = variance*(forecast_time_idx[forecast_time_idx>data_end_date_idx]-
-        #                                             data_end_date_idx)
-
+    break_points = np.array([data_start_date_idx,] +
+                            policy_effective_dates_idx[(~np.isnan(policy_effective_dates_idx))&
+                                                       (policy_effective_dates_idx < forecast_end_date_idx)].tolist() +
+                            [forecast_end_date_idx,])
+    log_daily_death = remove_outliers(log_daily_death, break_points)
+    regr_pw = pwlf.PiecewiseLinFit(x=log_daily_death.time_idx.values, y=log_daily_death.death)
+    regr_pw.fit_with_breaks(break_points)
     model_beta = regr_pw.beta
+    log_predicted_death_pred_var = smoothing_days * regr_pw.prediction_variance(forecast_time_idx)
 
-    if relax_date is not None:
-        relax_date = pd.to_datetime(relax_date)
-        relax_effective_date = relax_date + dt.timedelta(
-            INFECT_2_HOSPITAL_TIME + HOSPITAL_2_ICU_TIME + ICU_2_DEATH_TIME)
-        relax_effective_date_idx = (relax_effective_date - lockdown_effective_date).days
-        break_points = np.array([data_start_date_idx, 0, relax_effective_date_idx, forecast_end_date_idx])
-        model_beta = np.append(model_beta, ((model_beta[1] + model_beta[2]) * contain_rate +
-                                                model_beta[1] * (1 - contain_rate)) - (model_beta[1] + model_beta[2]))
-        log_predicted_death_pred_var_oos = log_predicted_death_pred_var_oos
+    # Use default slope when data is not enough to fit last line, less than 4 data point, with contain_rate=1 mean slope
+    # is the same as previous slope (same policy) and 0 mean (relax 100%) slope will be same as before lockdown
+    # import pdb;pdb.set_trace()
+    if ((data_end_date_idx-break_points[-2]) < 4) | (model_beta[-1] > max(0.3, abs(model_beta[1]))):
+        model_beta[-1] = (-model_beta[-2])*(1-contain_rate)
+        print("Use default last slope due to not enough data")
+        variance = log_predicted_death_pred_var[sum(forecast_time_idx <= break_points[-2])]
+        log_predicted_death_pred_var_oos = variance * (forecast_time_idx[forecast_time_idx > break_points[-2]] -
+                                                       break_points[-2])
+        log_predicted_death_pred_var = np.concatenate(
+                (log_predicted_death_pred_var[:sum(forecast_time_idx <= break_points[-2])],
+                 log_predicted_death_pred_var_oos))
+
     log_predicted_death_values = regr_pw.predict(forecast_time_idx, beta=model_beta, breaks=break_points)
-    log_predicted_death_pred_var = regr_pw.prediction_variance(forecast_time_idx)
-
-    log_predicted_death_pred_var = np.concatenate(
-        (log_predicted_death_pred_var[:sum(forecast_time_idx <= data_end_date_idx)],
-         log_predicted_death_pred_var_oos))
 
     log_predicted_death_lower_bound_values = log_predicted_death_values - 1.96 * np.sqrt(log_predicted_death_pred_var)
     log_predicted_death_upper_bound_values = log_predicted_death_values + 1.96 * np.sqrt(log_predicted_death_pred_var)
@@ -315,25 +314,23 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, lockdow
 
 
 def get_daily_predicted_death(local_death_data, forecast_horizon=60, lockdown_date=None,
-                              relax_date=None, contain_rate=0.5):
+                              relax_date=None, contain_rate=0.8):
     log_daily_predicted_death, lb, ub, model_beta = get_log_daily_predicted_death(local_death_data,
                                                                                   forecast_horizon,
-                                                                                  lockdown_date,
-                                                                                  relax_date,
+                                                                                  [lockdown_date, relax_date],
                                                                                   contain_rate)
     return np.exp(log_daily_predicted_death), np.exp(lb), np.exp(ub), model_beta
 
 
-
 def get_cumulative_predicted_death(local_death_data, forecast_horizon=60, lockdown_date=None,
-                                   relax_date=None, contain_rate=0.5):
+                                   relax_date=None, contain_rate=0.8):
     daily, lb, ub, model_beta = get_daily_predicted_death(local_death_data, forecast_horizon, lockdown_date,
                                                           relax_date, contain_rate)
     return daily.cumsum(), lb.cumsum(), ub.cumsum(), model_beta
 
 
 def get_daily_metrics_from_death_data(local_death_data, forecast_horizon=60, lockdown_date=None,
-                                      relax_date=None, contain_rate=0.5, test_rate=0.2):
+                                      relax_date=None, contain_rate=0.8, test_rate=0.2):
     """test rate is defined as ratio of confirmed positive cases over all infected cases. A test rate=1 mean
     we can catch all infected case. In this case there is no uncertainty on the infected case, it is exactly
     equal confirmed case. When test rate is smaller than 1 the uncertainty is higher. Test rate is estimated
@@ -377,7 +374,7 @@ def get_daily_metrics_from_death_data(local_death_data, forecast_horizon=60, loc
 
 
 def get_cumulative_metrics_from_death_data(local_death_data, forecast_horizon=60, lockdown_date=None,
-                                           relax_date=None, contain_rate=0.5, test_rate=0.2):
+                                           relax_date=None, contain_rate=0.8, test_rate=0.2):
     daily_metrics, model_beta = get_daily_metrics_from_death_data(local_death_data, forecast_horizon, lockdown_date,
                                                       relax_date, contain_rate, test_rate)
     cumulative_metrics = daily_metrics.drop(columns=['ICU', 'hospital_beds']).cumsum()
@@ -397,6 +394,7 @@ def get_cumulative_metrics_from_death_data(local_death_data, forecast_horizon=60
 
 
 def get_metrics_by_country(country, forecast_horizon=60, lockdown_date=None,
+                           relax_date=None, contain_rate=0.8, test_rate=0.2,
                            back_test=False, last_data_date=dt.date.today()):
     local_death_data = get_data_by_country(country, type='deaths')
     local_death_data_original = local_death_data.copy()
@@ -405,7 +403,8 @@ def get_metrics_by_country(country, forecast_horizon=60, lockdown_date=None,
         local_death_data = local_death_data[local_death_data.index.date <= last_data_date]
     local_confirmed_data = get_data_by_country(country, type='confirmed')
     daily_local_confirmed_data = get_daily_data(local_confirmed_data)
-    daily_metrics, model_beta = get_daily_metrics_from_death_data(local_death_data, forecast_horizon, lockdown_date)
+    daily_metrics, model_beta = get_daily_metrics_from_death_data(local_death_data, forecast_horizon, lockdown_date,
+                                                                  relax_date, contain_rate, test_rate)
     daily_metrics['confirmed'] = daily_local_confirmed_data
     if back_test:
         daily_metrics['death']= daily_local_death_data_original
@@ -417,7 +416,7 @@ def get_metrics_by_country(country, forecast_horizon=60, lockdown_date=None,
 
 
 def get_metrics_by_state_US(state, forecast_horizon=60, lockdown_date=None,
-                            relax_date=None, contain_rate=0.5, test_rate=0.2,
+                            relax_date=None, contain_rate=0.8, test_rate=0.2,
                             back_test=False, last_data_date=dt.date.today()):
     local_death_data = get_data_by_state(state, type='deaths')
     local_death_data_original = local_death_data.copy()
@@ -450,6 +449,7 @@ def get_metrics_by_county_and_state_US(county, state, forecast_horizon=60, lockd
 
 
 def get_log_daily_predicted_death_by_country(country, forecast_horizon=60, lockdown_date=None,
+                                             relax_date=None, contain_rate=0.8,
                                              back_test=False, last_data_date=dt.date.today()):
     local_death_data = get_data_by_country(country, type='deaths')
     local_death_data.columns = ['death']
@@ -459,13 +459,13 @@ def get_log_daily_predicted_death_by_country(country, forecast_horizon=60, lockd
     if back_test:
         local_death_data = local_death_data[local_death_data.index.date <= last_data_date]
     log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta = \
-            get_log_daily_predicted_death(local_death_data, forecast_horizon, lockdown_date)
-    return  pd.concat([log_daily_death_original, log_predicted_death, log_predicted_death_lb,
-                       log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
+            get_log_daily_predicted_death(local_death_data, forecast_horizon, [lockdown_date, relax_date])
+    return pd.concat([log_daily_death_original, log_predicted_death, log_predicted_death_lb,
+                      log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
 
 
 def get_log_daily_predicted_death_by_state_US(state, forecast_horizon=60, lockdown_date=None,
-                                              relax_date=None, contain_rate=0.5,
+                                              relax_date=None, contain_rate=0.8,
                                               back_test=False, last_data_date=dt.date.today()):
     local_death_data = get_data_by_state(state, type='deaths')
     local_death_data.columns = ['death']
@@ -475,20 +475,22 @@ def get_log_daily_predicted_death_by_state_US(state, forecast_horizon=60, lockdo
     if back_test:
         local_death_data = local_death_data[local_death_data.index.date <= last_data_date]
     log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta = \
-        get_log_daily_predicted_death(local_death_data, forecast_horizon, lockdown_date,
-                                      relax_date, contain_rate)
+        get_log_daily_predicted_death(local_death_data, forecast_horizon, [lockdown_date, relax_date], contain_rate)
     return pd.concat([log_daily_death_original, log_predicted_death, log_predicted_death_lb,
                       log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
 
 
-def get_log_daily_predicted_death_by_county_and_state_US(county, state, forecast_horizon=60, lockdown_date=None):
+def get_log_daily_predicted_death_by_county_and_state_US(county, state, forecast_horizon=60, lockdown_date=None,
+                                                         relax_date=None, contain_rate=0.8,
+                                                         back_test=False, last_data_date=dt.date.today()):
     local_death_data = get_data_by_county_and_state(county, state, type='deaths')
-    daily_local_death_new = local_death_data.diff().fillna(0)
-    daily_local_death_new.columns = ['death']
-    log_daily_death = np.log(daily_local_death_new)
+    local_death_data.columns = ['death']
+    local_death_data_original = local_death_data.copy()
+    daily_local_death_data_original = get_daily_data(local_death_data_original)
+    log_daily_death_original = np.log(daily_local_death_data_original)
     log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta = \
-        get_log_daily_predicted_death(local_death_data, forecast_horizon, lockdown_date)
-    return pd.concat([log_daily_death, log_predicted_death, log_predicted_death_lb,
+        get_log_daily_predicted_death(local_death_data, forecast_horizon, [lockdown_date, relax_date], contain_rate)
+    return pd.concat([log_daily_death_original, log_predicted_death, log_predicted_death_lb,
                       log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
 
 
