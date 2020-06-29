@@ -189,7 +189,7 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
     st.subheader('Estimated Cases and Essential Resources')
     st.markdown('Since health care systems vary widely between geographic location, if this is used for planning, please'
                 ' check the advance box on the sidebar to update with the appropriate parameters')
-    fig = daily.drop(columns=['ICU', 'hospital_beds'], errors='ignore')\
+    fig = daily.rename(columns={'ICU': 'current_ICU', 'hospital_beds': 'current_hospital_beds'})\
         .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
     x = daily.index
     y_upper = daily.upper_bound.values
@@ -216,12 +216,15 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             visible='legendonly',
             selector=dict(name=invisible)
         )
-    fig.update_traces(line = dict(dash='dot'))
+    fig.update_traces(line=dict(dash='dot'))
     for observe_ln in ['death', 'confirmed']:
         fig.update_traces(
-            line = dict(dash='solid'),
+            line=dict(dash='solid'),
             selector=dict(name=observe_ln)
         )
+    fig.update_traces(
+        line=dict(color='teal'),
+        selector=dict(name='confirmed'))
     if back_test:
         max_y = np.nanmax(y_upper)
         fig.add_trace(go.Scatter(
@@ -234,6 +237,25 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
+    if scope == 'State':
+        hospital_cap = mu.get_US_State_hospital_cap_data()
+        try:
+            fig.add_trace(go.Scatter(
+                x=x,
+                y=[hospital_cap.loc[local].Total_Hospital_Beds]*len(x),
+                mode='lines',
+                visible='legendonly',
+                name='total hospital beds capacity'
+            ))
+            fig.add_trace(go.Scatter(
+                x=x,
+                y=[hospital_cap.loc[local].Total_ICU_Beds] * len(x),
+                mode='lines',
+                visible='legendonly',
+                name='total ICU beds capacity'
+            ))
+        except KeyError:
+            pass
     fig.update_layout(
         title="Covid19 Daily " + local,
         hovermode='x',
@@ -286,23 +308,7 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
-    if scope == 'State':
-        hospital_cap = mu.get_US_State_hospital_cap_data()
-        try:
-            fig.add_trace(go.Scatter(
-                x=x,
-                y=[hospital_cap.loc[local].Total_Hospital_Beds]*len(x),
-                mode='lines',
-                name='hospital beds capacity'
-            ))
-            fig.add_trace(go.Scatter(
-                x=x,
-                y=[hospital_cap.loc[local].Total_ICU_Beds] * len(x),
-                mode='lines',
-                name='ICU beds capacity'
-            ))
-        except KeyError:
-            pass
+
     fig.update_layout(
         title="Covid19 Cumulative " + local,
         hovermode='x',
