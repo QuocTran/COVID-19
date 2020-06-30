@@ -646,3 +646,34 @@ if st.checkbox('Changelog'):
     st.markdown('2020/05/07 Added back test to visually evaluate model sensitivity to new data point')
     st.markdown('2020/06/11 Added lock down end date which allows modeling the relax phase')
     st.markdown('2020/06/29 Added total hospital beds and ICU from Harvard data source')
+
+disqus_js = """
+<div id="disqus_thread"></div>
+<script>
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://covid19aipert.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+"""
+#st.html(disqus_js)
+google_analytics_js = """
+<!-- Global site tag (gtag.js) - Google Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=UA-168384497-1"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "UA-168384497-1");
+    </script>
+    """
+#st.html(google_analytics_js)
+
