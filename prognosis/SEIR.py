@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def SEIR(y, t, logbeta, logkappa, loggamma):
+def SEIR(y, t, N, logbeta, logkappa, loggamma):
     # S: y[0]
     # E: y[1]
     # I: y[2]
@@ -24,10 +24,10 @@ def SEIR(y, t, logbeta, logkappa, loggamma):
                      kappa*y[1] - gamma*y[2], 
                      gamma*y[2]])
     
-def minimization(y0, t, C, niter = 1):
+def minimization(y0, t, C, N, niter = 1):
     
     def fit_odeint(t, logbeta, logkappa, loggamma):
-        out_odeint = odeint(SEIR, y0, t, args=(logbeta, logkappa, loggamma))
+        out_odeint = odeint(SEIR, y0, t, args=(N, logbeta, logkappa, loggamma))
         return out_odeint[:,2]+out_odeint[:,3]
     
     best = np.inf
@@ -41,7 +41,8 @@ def minimization(y0, t, C, niter = 1):
                                    p0=np.asarray([init_logbeta,init_logkappa,init_loggamma]),
                                    maxfev=5000)
         except RuntimeError:
-            print("Error - curve_fit failed")   
+            print("Error - curve_fit failed")
+            continue
         fitted = fit_odeint(t, *popt)
         value = np.sum((fitted - C)**2)
         if (value < best): 
@@ -49,5 +50,5 @@ def minimization(y0, t, C, niter = 1):
             best = value
     return (res, best)
 
-def dynamics(y0, t, logbeta, logkappa, loggamma):
-    return odeint(SEIR, y0, t, args=(logbeta, logkappa, loggamma))
+def dynamics(y0, t, N, logbeta, logkappa, loggamma):
+    return odeint(SEIR, y0, t, args=(N, logbeta, logkappa, loggamma))
