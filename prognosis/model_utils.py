@@ -340,9 +340,9 @@ def get_daily_metrics_from_death_data(local_death_data, forecast_horizon=60, loc
     number of death lower and upper bound.
     For other metrics derive from death, we need to use this test rate to add uncertainty into their bounds.
     Due to the definition, standard deviation of the derived metrics gets inflated by 1 over squareroot of test rate"""
-    daily_predicted_death, daily_predicted_death_lb, daily_predicted_death_ub, model_beta  = \
-            get_daily_predicted_death(local_death_data, forecast_horizon, lockdown_date,
-                                      relax_date, contain_rate)
+    daily_predicted_death, daily_predicted_death_lb, daily_predicted_death_ub, model_beta = \
+        get_daily_predicted_death(local_death_data, forecast_horizon, lockdown_date,
+                                  relax_date, contain_rate)
     upper_length_death = daily_predicted_death_ub - daily_predicted_death
     upper_length_derived = (upper_length_death*1/np.sqrt(test_rate)).astype('int', errors='ignore')
     lower_length_death = daily_predicted_death - daily_predicted_death_lb
