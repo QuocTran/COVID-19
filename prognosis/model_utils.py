@@ -242,6 +242,7 @@ def remove_outliers(log_daily_death, break_points):
         outliers = np.concatenate((outliers, outliers_pw))
     return log_daily_death[~outliers]
 
+
 def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8):
     '''Since this is highly contagious disease. Daily new death, which is a proxy for daily new infected cases
     is model as d(t)=a*d(t-1) or equivalent to d(t) = b*a^(t). After a log transform, it becomes linear.

@@ -11,6 +11,9 @@ from scipy.optimize import curve_fit
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+def mape(actual, predict): 
+    mask = actual != 0
+    return (np.fabs(actual - predict)/actual)[mask].mean()
 
 def SEIR(y, t, N, logbeta, logkappa, loggamma):
     # S: y[0]
@@ -18,7 +21,7 @@ def SEIR(y, t, N, logbeta, logkappa, loggamma):
     # I: y[2]
     # R: y[3]
     beta, kappa, gamma = np.exp((logbeta, logkappa, loggamma))
-    
+    # beta, kappa, gamma = logbeta, logkappa, loggamma
     return np.array([- beta*y[0]*y[2] / N, 
                      beta*y[0]*y[2] / N - kappa*y[1], 
                      kappa*y[1] - gamma*y[2], 
@@ -36,15 +39,19 @@ def minimization(y0, t, C, N, niter = 1):
         init_logbeta = 0.5 * np.random.randn() + 1
         init_logkappa = 0.5 * np.random.randn()
         init_loggamma = 0.5 * np.random.randn()
+        init_logbeta = 1 * np.random.randn() + 1
+        init_logkappa = 1 * np.random.randn()
+        init_loggamma = 0.1 * np.random.randn()+-0.1
         try:
             popt, pcov = curve_fit(fit_odeint, t, C,
-                                   p0=np.asarray([init_logbeta,init_logkappa,init_loggamma]),
+                                   p0=np.asarray([init_logbeta,init_logkappa,init_loggamma]), method='lm',
                                    maxfev=5000)
         except RuntimeError:
             print("Error - curve_fit failed")
             continue
         fitted = fit_odeint(t, *popt)
         value = np.sum((fitted - C)**2)
+        #value = mape(C,fitted)
         if (value < best): 
             res = popt
             best = value
