@@ -64,25 +64,31 @@ def get_US_State_hospital_cap_data(file_template='data/Hospital_Capacity_by_Stat
     return csv_data
 
 
+def process_local_data(local_data):
+    local_data.index = pd.to_datetime(local_data.index)
+    # Remove non positive value
+    local_data = local_data[local_data > 0].dropna()
+    # Pad first value with 0
+    local_data.loc[min(local_data.index)+dt.timedelta(-1)] = 0
+    return local_data.sort_index()
+
+
 def get_data_by_country(country, type='deaths'):
     global_data = get_data(scope='global', type=type)
     local_data = global_data.query('Country == "{}"'.format(country)).iloc[:,4:].T.sum(axis=1).to_frame()
-    local_data.index = pd.to_datetime(local_data.index)
-    return local_data[local_data>0].dropna()
+    return process_local_data(local_data)
 
 
 def get_data_by_state(state, type='deaths'):
     US_data = get_data(scope='US', type=type)
     local_data = US_data.query('State == "{}"'.format(state)).iloc[:,12:].T.sum(axis=1).to_frame()
-    local_data.index = pd.to_datetime(local_data.index)
-    return local_data[local_data>0].dropna()
+    return process_local_data(local_data)
 
 
 def get_data_by_county_and_state(county, state, type='deaths'):
     US_data = get_data(scope='US', type=type)
     local_data = US_data.query('County == "{}" and State == "{}"'.format(county, state)).iloc[:,12:].T.sum(axis=1).to_frame()
-    local_data.index = pd.to_datetime(local_data.index)
-    return local_data[local_data>0].dropna()
+    return process_local_data(local_data)
 
 
 def get_lockdown_date_global(csv_file='data/lockdown_date_country.csv'):
@@ -341,6 +347,7 @@ def get_daily_metrics_from_death_data(local_death_data, forecast_horizon=60, loc
     number of death lower and upper bound.
     For other metrics derive from death, we need to use this test rate to add uncertainty into their bounds.
     Due to the definition, standard deviation of the derived metrics gets inflated by 1 over squareroot of test rate"""
+
     daily_predicted_death, daily_predicted_death_lb, daily_predicted_death_ub, model_beta = \
         get_daily_predicted_death(local_death_data, forecast_horizon, lockdown_date,
                                   relax_date, contain_rate)
