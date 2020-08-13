@@ -334,7 +334,7 @@ if scope == 'Country':
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')
-    local = st.sidebar.selectbox('Which country do you like to see prognosis', death_data.Country.unique(), index=156)
+    local = st.sidebar.selectbox('Which country do you like to see prognosis', death_data.Country.unique(), index=174)
     lockdown_date = st.sidebar.date_input('When did full lockdown happen? Very IMPORTANT to get accurate prediction',
                                           mu.get_lockdown_date_by_country(local))
     forecast_fun = mu.get_metrics_by_country
@@ -344,7 +344,7 @@ else:
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='US', type='deaths')
     #data_load_state.text('Loading data... done!')
-    local = st.sidebar.selectbox('Which US state do you like to see prognosis', death_data.State.unique(), index=9)
+    local = st.sidebar.selectbox('Which US state do you like to see prognosis', death_data.State.unique(), index=5)
     lockdown_date = st.sidebar.date_input('When did full lockdown happen? Very IMPORTANT to get accurate prediction',
                                           mu.get_lockdown_date_by_state_US(local))
     forecast_fun = mu.get_metrics_by_state_US
