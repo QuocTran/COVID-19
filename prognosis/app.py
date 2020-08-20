@@ -1,5 +1,6 @@
 import streamlit as st
 import datetime as dt
+from pandas import date_range
 import numpy as np
 import model_utils as mu
 import plotly.graph_objects as go
@@ -29,22 +30,22 @@ st.markdown('COVID-19:  The prognosis for next 2 months. '
             ' How many hospital beds or ICU needed? In every countries and US states. ')
 
 
-def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
+def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
          show_data, back_test, last_data_date):
     data_load_state = st.text('Forecasting...')
     try:
         daily, cumulative, model_beta = forecast_fun(local,
-                                                     forecast_horizon=forecast_horizon, lockdown_date=lockdown_date,
-                                                     relax_date=relax_date,
+                                                     forecast_horizon=forecast_horizon,
+                                                     policy_change_dates=policy_change_dates,
                                                      back_test=back_test, last_data_date=last_data_date)
     except ValueError as e:
         st.error('Not enough fatality data to provide prognosis, also, please check input and lockdown date')
-        mu.append_row_2_logs([dt.datetime.today(), scope, local, lockdown_date, relax_date, forecast_horizon,
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, policy_change_dates, forecast_horizon,
                               last_data_date, e], 'logs/app_errors.log')
         return None
     except IndexError as e:
         st.error('You found a bug in the code. Let me report it to my master!')
-        mu.append_row_2_logs([dt.datetime.today(), scope, local, lockdown_date, relax_date, forecast_horizon,
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, policy_change_dates, forecast_horizon,
                               last_data_date, e], 'logs/app_errors.log')
         return None
 
@@ -142,8 +143,8 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
     st.plotly_chart(fig)
 
     if show_debug:
-        log_fit, _ = debug_fun(local, forecast_horizon=forecast_horizon, lockdown_date=lockdown_date,
-                               relax_date=relax_date, back_test=back_test, last_data_date=last_data_date)
+        log_fit, _ = debug_fun(local, forecast_horizon=forecast_horizon, policy_change_dates=policy_change_dates,
+                               back_test=back_test, last_data_date=last_data_date)
         fig = log_fit.rename(columns={'death':'observed', 'predicted_death': 'predicted'})\
             .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
         x = log_fit.index
@@ -187,8 +188,8 @@ def main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun
         st.plotly_chart(fig)
 
     st.subheader('Estimated Cases and Essential Resources')
-    st.markdown('Since health care systems vary widely between geographic location, if this is used for planning, please'
-                ' check the advance box on the sidebar to update with the appropriate parameters')
+    st.markdown('Since health care systems vary widely between geographic location, if this is used for planning, '
+                'please check the advance box on the sidebar to update with the appropriate parameters')
     fig = daily.rename(columns={'ICU': 'current_ICU', 'hospital_beds': 'current_hospital_beds'})\
         .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
     x = daily.index
@@ -335,8 +336,7 @@ if scope == 'Country':
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')
     local = st.sidebar.selectbox('Which country do you like to see prognosis', death_data.Country.unique(), index=174)
-    lockdown_date = st.sidebar.date_input('When did full lockdown happen? Very IMPORTANT to get accurate prediction',
-                                          mu.get_lockdown_date_by_country(local))
+    lockdown_date_fun = mu.get_lockdown_date_by_country
     forecast_fun = mu.get_metrics_by_country
     debug_fun = mu.get_log_daily_predicted_death_by_country
     relax_date_fun = mu.get_relax_date_by_country
@@ -345,22 +345,27 @@ else:
     death_data = mu.get_data(scope='US', type='deaths')
     #data_load_state.text('Loading data... done!')
     local = st.sidebar.selectbox('Which US state do you like to see prognosis', death_data.State.unique(), index=5)
-    lockdown_date = st.sidebar.date_input('When did full lockdown happen? Very IMPORTANT to get accurate prediction',
-                                          mu.get_lockdown_date_by_state_US(local))
+    lockdown_date_fun = mu.get_lockdown_date_by_state_US
     forecast_fun = mu.get_metrics_by_state_US
     debug_fun = mu.get_log_daily_predicted_death_by_state_US
     relax_date_fun = mu.get_relax_date_by_state_US
+lockdown_date = lockdown_date_fun(local)
+relax_date = relax_date_fun(local)
+default_dates = [lockdown_date, relax_date]
+default_dates = list(filter(None, default_dates))
+date_options = date_range(start='2020/02/01', end=dt.date.today()+dt.timedelta(30)).tolist()
+date_options = default_dates + [s.date() for s in date_options]
+policy_change_dates = st.sidebar.multiselect('Significant policy change dates, e.g. lockdown, relax, mask policy ..'
+                                             'IMPORTANT to get good forecast',
+                                             options=date_options, default=default_dates)
 
 forecast_horizon = st.sidebar.slider('Forecast Horizon', value=60, min_value=30, max_value=90)
 show_debug = st.sidebar.checkbox('Show fitted log death', value=True)
-relax_date=None
-if st.sidebar.checkbox('Add significant policy change date', value=True):
-    relax_date = st.sidebar.date_input('When did lock-down end? '
-                                       'Or significant policy change date such as "mask in public"?',
-                                       relax_date_fun(local))
+
 'You selected: ', local, 'with lock down date: ', lockdown_date, ' and relax date ', relax_date,\
     '. Click **Run** on left sidebar to see forecast. Plot is interactive. Work best on desktop.'
 show_data = st.sidebar.checkbox('Show raw output data')
+
 if st.sidebar.checkbox('Advance: change assumptions'):
     if st.sidebar.checkbox('Change rates'):
         mu.DEATH_RATE = st.sidebar.slider('Overall death rate', value=mu.DEATH_RATE,
@@ -395,9 +400,9 @@ if back_test:
     'Run back test with data up to', last_data_date
 
 if st.sidebar.button('Run'):
-    main(scope, local, lockdown_date, relax_date, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
+    main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
          show_data, back_test, last_data_date)
-    model_params = [dt.datetime.today(), scope, local, lockdown_date, relax_date,
+    model_params = [dt.datetime.today(), scope, local, policy_change_dates,
                     mu.DEATH_RATE, mu.ICU_RATE, mu.HOSPITAL_RATE,
                     mu.SYMPTOM_RATE, mu.INFECT_2_HOSPITAL_TIME, mu.HOSPITAL_2_ICU_TIME, mu.ICU_2_DEATH_TIME, 
                     mu.ICU_2_RECOVER_TIME, mu.NOT_ICU_DISCHARGE_TIME, back_test, last_data_date]
@@ -647,6 +652,8 @@ if st.checkbox('Changelog'):
     st.markdown('2020/05/07 Added back test to visually evaluate model sensitivity to new data point')
     st.markdown('2020/06/11 Added lock down end date which allows modeling the relax phase')
     st.markdown('2020/06/29 Added total hospital beds and ICU from Harvard data source')
+    st.markdown('2020/08/19 Change model and UI to allow more than 2 significant policy change dates such as lock down '
+                'relax')
 
 disqus_js = """
 <div id="disqus_thread"></div>
