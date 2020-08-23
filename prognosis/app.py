@@ -19,6 +19,10 @@ mu.ICU_2_DEATH_TIME = 4
 mu.ICU_2_RECOVER_TIME = 7
 mu.NOT_ICU_DISCHARGE_TIME = 5
 
+st.beta_set_page_config(
+    page_title="Covid-19 Prediction",
+    initial_sidebar_state="expanded",
+)
 st.title('Covid-19 Prediction')
 hide_menu_style = """
         <style>
@@ -658,6 +662,10 @@ if st.checkbox('Changelog'):
 disqus_js = """
 <div id="disqus_thread"></div>
 <script>
+var disqus_config = function () {
+this.page.url = 'https://covid19.aipert.org'
+this.page.identifier = my_page; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
 (function() { // DON'T EDIT BELOW THIS LINE
 var d = document, s = d.createElement('script');
 s.src = 'https://covid19aipert.disqus.com/embed.js';
@@ -666,7 +674,7 @@ s.setAttribute('data-timestamp', +new Date());
 })();
 </script>
 """
-#st.html(disqus_js)
+#st.components.v1.html(disqus_js)
 google_analytics_js = """
 <!-- Global site tag (gtag.js) - Google Analytics -->
     <script
@@ -683,5 +691,9 @@ google_analytics_js = """
       gtag("config", "UA-168384497-1");
     </script>
     """
-#st.html(google_analytics_js)
-
+#st.components.v1.html(google_analytics_js)
+fb_comments = """
+        <div class="fb-comments" data-href="https://covid19.aipert.org" data-numposts="5" data-width=""></div>
+        """
+#st.components.v1.html(fb_comments)
+st.components.v1.iframe('http://localhost:8501/discuss.html', height=400, scrolling=True)
