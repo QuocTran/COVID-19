@@ -658,6 +658,7 @@ if st.checkbox('Changelog'):
     st.markdown('2020/06/29 Added total hospital beds and ICU from Harvard data source')
     st.markdown('2020/08/19 Change model and UI to allow more than 2 significant policy change dates such as lock down '
                 'relax')
+    st.markdown('2020/08/24 Upgraded Streamlit to version 0.65 Added FB Comments Plugin')
 
 disqus_js = """
 <div id="disqus_thread"></div>
