@@ -1,6 +1,6 @@
 import streamlit as st
 import datetime as dt
-from pandas import date_range
+from pandas import date_range, to_datetime
 import numpy as np
 import model_utils as mu
 import plotly.graph_objects as go
@@ -340,25 +340,23 @@ if scope == 'Country':
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')
     local = st.sidebar.selectbox('Which country do you like to see prognosis', death_data.Country.unique(), index=174)
-    lockdown_date_fun = mu.get_lockdown_date_by_country
     forecast_fun = mu.get_metrics_by_country
     debug_fun = mu.get_log_daily_predicted_death_by_country
-    relax_date_fun = mu.get_relax_date_by_country
+    policy_date_fun = mu.get_policy_change_dates_by_country
 else:
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='US', type='deaths')
     #data_load_state.text('Loading data... done!')
     local = st.sidebar.selectbox('Which US state do you like to see prognosis', death_data.State.unique(), index=5)
-    lockdown_date_fun = mu.get_lockdown_date_by_state_US
     forecast_fun = mu.get_metrics_by_state_US
     debug_fun = mu.get_log_daily_predicted_death_by_state_US
-    relax_date_fun = mu.get_relax_date_by_state_US
-lockdown_date = lockdown_date_fun(local)
-relax_date = relax_date_fun(local)
-default_dates = [lockdown_date, relax_date]
+    policy_date_fun = mu.get_policy_change_dates_by_state_US
+
+default_dates = policy_date_fun(local)
+default_dates = [to_datetime(pdate).date() for pdate in default_dates]
 default_dates = list(filter(None, default_dates))
 date_options = date_range(start='2020/02/01', end=dt.date.today()+dt.timedelta(30)).tolist()
-date_options = default_dates + [s.date() for s in date_options]
+date_options = default_dates + [s.date() for s in date_options[::-1]]
 policy_change_dates = st.sidebar.multiselect('Significant policy change dates, e.g. lockdown, relax, mask policy ..'
                                              'IMPORTANT to get good forecast',
                                              options=date_options, default=default_dates)
@@ -366,8 +364,8 @@ policy_change_dates = st.sidebar.multiselect('Significant policy change dates, e
 forecast_horizon = st.sidebar.slider('Forecast Horizon', value=60, min_value=30, max_value=90)
 show_debug = st.sidebar.checkbox('Show fitted log death', value=True)
 
-'You selected: ', local, 'with lock down date: ', lockdown_date, ' and relax date ', relax_date,\
-    '. Click **Run** on left sidebar to see forecast. Plot is interactive. Work best on desktop.'
+'You selected: ', local, 'with policy change dates:', policy_change_dates, \
+    'Click **Run** on left sidebar to see forecast. Plot is interactive. Work best on desktop.'
 show_data = st.sidebar.checkbox('Show raw output data')
 
 if st.sidebar.checkbox('Advance: change assumptions'):

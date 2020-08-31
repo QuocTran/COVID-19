@@ -23,6 +23,7 @@
 
 
 import pandas as pd
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime as dt
@@ -91,50 +92,22 @@ def get_data_by_county_and_state(county, state, type='deaths'):
     return process_local_data(local_data)
 
 
-def get_lockdown_date_global(csv_file='data/lockdown_date_country.csv'):
-    return pd.read_csv(csv_file)[['country', 'lockdown_date', 'relax_date']].set_index('country')
-
-
-def get_lockdown_date_by_country(country):
+def get_policy_change_dates_by_country(country):
+    policy = json.load(open('data/lockdown_date_country.json', 'r'))
     try:
-        lockdown_date = pd.to_datetime(get_lockdown_date_global().loc[country][0]).date()
+        policy_change_dates = policy[country]
     except KeyError:
-        lockdown_date = None
-    return lockdown_date
+        policy_change_dates = []
+    return policy_change_dates
 
 
-def get_relax_date_by_country(country):
+def get_policy_change_dates_by_state_US(state):
+    policy = json.load(open('data/lockdown_date_state_US.json', 'r'))
     try:
-        relax_date = pd.to_datetime(get_lockdown_date_global().loc[country][1]).date()
+        policy_change_dates = policy[state]
     except KeyError:
-        return None
-    if relax_date > pd.to_datetime('2020/01/01'):
-        return relax_date
-    else:
-        return None
-
-
-def get_lockdown_date_US(csv_file='data/lockdown_date_state_US.csv'):
-    return pd.read_csv(csv_file)[['state', 'lockdown_date', 'relax_date']].set_index('state')
-
-
-def get_lockdown_date_by_state_US(state):
-    try:
-        lockdown_date = pd.to_datetime(get_lockdown_date_US().loc[state][0]).date()
-    except KeyError:
-        lockdown_date = None
-    return lockdown_date
-
-
-def get_relax_date_by_state_US(state):
-    try:
-        relax_date = pd.to_datetime(get_lockdown_date_US().loc[state][1]).date()
-    except KeyError:
-        return None
-    if relax_date > pd.to_datetime('2020/01/01'):
-        return relax_date
-    else:
-        return None
+        policy_change_dates = []
+    return policy_change_dates
 
 
 def get_daily_data(cum_data):
