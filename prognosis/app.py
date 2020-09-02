@@ -360,7 +360,7 @@ date_options = default_dates + [s.date() for s in date_options[::-1]]
 policy_change_dates = st.sidebar.multiselect('Significant policy change dates, e.g. lockdown, relax, mask policy ..'
                                              'IMPORTANT to get good forecast',
                                              options=date_options, default=default_dates)
-
+policy_change_dates.sort()
 forecast_horizon = st.sidebar.slider('Forecast Horizon', value=60, min_value=30, max_value=90)
 show_debug = st.sidebar.checkbox('Show fitted log death', value=True)
 
