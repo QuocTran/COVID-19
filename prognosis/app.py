@@ -627,6 +627,8 @@ if st.checkbox('References'):
                 '(https://jamanetwork.com/journals/jama/fullarticle/2766522)')
     st.markdown('2020/06/29 [CDC Public Face Mask Recommendation]'
                 '(https://www.cdc.gov/coronavirus/2019-ncov/prevent-getting-sick/cloth-face-cover.html)')
+    st.markdown('2020/09/05 [Wiki National responses to the COVID-19 pandemic]'
+                '(https://en.wikipedia.org/wiki/National_responses_to_the_COVID-19_pandemic)')
 
 
     st.subheader('On the news')
