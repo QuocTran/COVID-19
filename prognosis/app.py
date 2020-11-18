@@ -34,22 +34,22 @@ st.markdown('COVID-19:  The prognosis for next 2 months. '
             ' How many hospital beds or ICU needed? In every countries and US states. ')
 
 
-def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
+def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
          show_data, back_test, last_data_date):
     data_load_state = st.text('Forecasting...')
     try:
-        daily, cumulative, model_beta = forecast_fun(local,
+        daily, cumulative, model_beta = forecast_fun(local, local_sub_level,
                                                      forecast_horizon=forecast_horizon,
                                                      policy_change_dates=policy_change_dates,
                                                      back_test=back_test, last_data_date=last_data_date)
     except ValueError as e:
         st.error('Not enough fatality data to provide prognosis, also, please check input and lockdown date')
-        mu.append_row_2_logs([dt.datetime.today(), scope, local, policy_change_dates, forecast_horizon,
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, local_sub_level, policy_change_dates, forecast_horizon,
                               last_data_date, e], 'logs/app_errors.log')
         return None
     except IndexError as e:
         st.error('You found a bug in the code. Let me report it to my master!')
-        mu.append_row_2_logs([dt.datetime.today(), scope, local, policy_change_dates, forecast_horizon,
+        mu.append_row_2_logs([dt.datetime.today(), scope, local, local_sub_level, policy_change_dates, forecast_horizon,
                               last_data_date, e], 'logs/app_errors.log')
         return None
 
@@ -95,7 +95,7 @@ def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debu
             name='Last day of fitted data'
         ))
     fig.update_layout(
-        title="Covid19 Daily " + local,
+        title="Covid19 Daily " + local + ", " + local_sub_level,
         yaxis_title="Death",
         hovermode='x',
         legend_title='<b> Death </b>',
@@ -138,7 +138,7 @@ def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debu
         ))
 
     fig.update_layout(
-        title="Covid19 Cumulative " + local,
+        title="Covid19 Cumulative " + local + ", " + local_sub_level,
         yaxis_title="Death",
         hovermode='x',
         legend_title='<b> Death </b>'
@@ -147,7 +147,7 @@ def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debu
     st.plotly_chart(fig)
 
     if show_debug:
-        log_fit, _ = debug_fun(local, forecast_horizon=forecast_horizon, policy_change_dates=policy_change_dates,
+        log_fit, _ = debug_fun(local, local_sub_level, forecast_horizon=forecast_horizon, policy_change_dates=policy_change_dates,
                                back_test=back_test, last_data_date=last_data_date)
         fig = log_fit.rename(columns={'death':'observed', 'predicted_death': 'predicted'})\
             .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
@@ -242,7 +242,7 @@ def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debu
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
-    if scope == 'State':
+    if scope == 'US':
         hospital_cap = mu.get_US_State_hospital_cap_data()
         try:
             fig.add_trace(go.Scatter(
@@ -262,7 +262,7 @@ def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debu
         except KeyError:
             pass
     fig.update_layout(
-        title="Covid19 Daily " + local,
+        title="Covid19 Daily " + local + ", " + local_sub_level,
         hovermode='x',
         legend_title='<b> Number of ... </b>',
     )
@@ -315,7 +315,7 @@ def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debu
         ))
 
     fig.update_layout(
-        title="Covid19 Cumulative " + local,
+        title="Covid19 Cumulative " + local + ", " + local_sub_level,
         hovermode='x',
         legend_title='<b> Number of ... </b>',
     )
@@ -324,22 +324,25 @@ def main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debu
 
     if show_data:
         st.subheader('Raw Output Data')
-        st.markdown(mu.get_table_download_link(daily, filename= 'daily_'+local+'_'+str(dt.date.today())+'.csv'),
+        st.markdown(mu.get_table_download_link(daily,
+                    filename= 'daily_'+local+'_'+local_sub_level+'_'+str(dt.date.today())+'.csv'),
                     unsafe_allow_html=True)
         st.write('Daily metrics', daily)
         st.markdown(mu.get_table_download_link(cumulative,
-                                               filename='cumulative_' + local + '_' + str(dt.date.today()) + '.csv'),
+                    filename='cumulative_' + local + '_'+local_sub_level+'_' + str(dt.date.today()) + '.csv'),
                     unsafe_allow_html=True)
         st.write('Cumulative metrics', cumulative)
     mu.append_row_2_logs([dt.datetime.today(), scope, local, model_beta], 'logs/fitted_models.csv')
 
 
-scope = st.sidebar.selectbox('Country or US State', ['Country', 'State'], index=0)
-if scope == 'Country':
+scope = st.sidebar.selectbox('World or US', ['World', 'US'], index=0)
+if scope == 'World':
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')
-    local = st.sidebar.selectbox('Which country do you like to see prognosis', death_data.Country.unique(), index=176)
+    local = st.sidebar.selectbox('Country', death_data.Country.unique(), index=176)
+    local_sub_level = st.sidebar.selectbox('Province/State', ['All', ] + death_data.query('Country == "{}"'\
+                                                        .format(local)).State.dropna().unique().tolist(), index=0)
     forecast_fun = mu.get_metrics_by_country
     debug_fun = mu.get_log_daily_predicted_death_by_country
     policy_date_fun = mu.get_policy_change_dates_by_country
@@ -347,7 +350,10 @@ else:
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='US', type='deaths')
     #data_load_state.text('Loading data... done!')
-    local = st.sidebar.selectbox('Which US state do you like to see prognosis', death_data.State.unique(), index=5)
+    local = st.sidebar.selectbox('State', death_data.State.unique(), index=5)
+    local_sub_level = st.sidebar.selectbox('County', ['All', ] + death_data.query('State == "{}"'\
+                        .format(local)).County.dropna().unique().tolist(), index=0)
+
     forecast_fun = mu.get_metrics_by_state_US
     debug_fun = mu.get_log_daily_predicted_death_by_state_US
     policy_date_fun = mu.get_policy_change_dates_by_state_US
@@ -361,10 +367,11 @@ policy_change_dates = st.sidebar.multiselect('Significant policy change dates, e
                                              'IMPORTANT to get good forecast',
                                              options=date_options, default=default_dates)
 policy_change_dates.sort()
-forecast_horizon = st.sidebar.slider('Forecast Horizon', value=60, min_value=30, max_value=90)
+forecast_horizon = st.sidebar.slider('Forecast Horizon (days)', value=60, min_value=30, max_value=90)
 show_debug = st.sidebar.checkbox('Show fitted log death', value=True)
 
-'You selected: ', local, 'with policy change dates:', [date_obj.strftime('%Y-%m-%d') for date_obj in policy_change_dates], \
+'You selected: ', local, ', ', local_sub_level, 'with policy change dates:', \
+    [date_obj.strftime('%Y-%m-%d') for date_obj in policy_change_dates], \
     'Click **Run** on left sidebar to see forecast. Plot is interactive. Work best on desktop.'
 show_data = st.sidebar.checkbox('Show raw output data')
 
@@ -402,9 +409,9 @@ if back_test:
     'Run back test with data up to', last_data_date
 
 if st.sidebar.button('Run'):
-    main(scope, local, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
+    main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
          show_data, back_test, last_data_date)
-    model_params = [dt.datetime.today(), scope, local, policy_change_dates,
+    model_params = [dt.datetime.today(), scope, local, local_sub_level, policy_change_dates,
                     mu.DEATH_RATE, mu.ICU_RATE, mu.HOSPITAL_RATE,
                     mu.SYMPTOM_RATE, mu.INFECT_2_HOSPITAL_TIME, mu.HOSPITAL_2_ICU_TIME, mu.ICU_2_DEATH_TIME, 
                     mu.ICU_2_RECOVER_TIME, mu.NOT_ICU_DISCHARGE_TIME, back_test, last_data_date]
