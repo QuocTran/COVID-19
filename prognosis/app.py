@@ -242,7 +242,7 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
             hoverinfo="x+name",
             name='Last day of fitted data'
         ))
-    if scope == 'US':
+    if scope == 'US' and local_sub_level == 'All':
         hospital_cap = mu.get_US_State_hospital_cap_data()
         try:
             fig.add_trace(go.Scatter(
