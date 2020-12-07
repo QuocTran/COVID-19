@@ -74,15 +74,23 @@ def process_local_data(local_data):
     return local_data.sort_index()
 
 
-def get_data_by_country(country, type='deaths'):
+def get_data_by_country(country, state='All', type='deaths'):
     global_data = get_data(scope='global', type=type)
-    local_data = global_data.query('Country == "{}"'.format(country)).iloc[:,4:].T.sum(axis=1).to_frame()
+    if state == 'All':
+        local_data = global_data.query('Country == "{}"'.format(country)).iloc[:,4:].T.sum(axis=1).to_frame()
+    else:
+        local_data = global_data.query('Country == "{}" and State == "{}"'.format(country, state))\
+                         .iloc[:, 4:].T.sum(axis=1).to_frame()
     return process_local_data(local_data)
 
 
-def get_data_by_state(state, type='deaths'):
+def get_data_by_state(state, county='All', type='deaths'):
     US_data = get_data(scope='US', type=type)
-    local_data = US_data.query('State == "{}"'.format(state)).iloc[:,12:].T.sum(axis=1).to_frame()
+    if county == 'All':
+        local_data = US_data.query('State == "{}"'.format(state)).iloc[:,12:].T.sum(axis=1).to_frame()
+    else:
+        local_data = US_data.query('State == "{}" and County == "{}"'.format(state, county))\
+                         .iloc[:, 12:].T.sum(axis=1).to_frame()
     return process_local_data(local_data)
 
 
@@ -367,14 +375,14 @@ def get_cumulative_metrics_from_death_data(local_death_data, forecast_horizon=60
     return cumulative_metrics, model_beta
 
 
-def get_metrics_by_country(country, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8, test_rate=0.2,
+def get_metrics_by_country(country, state='All', forecast_horizon=60, policy_change_dates=[], contain_rate=0.8, test_rate=0.2,
                            back_test=False, last_data_date=dt.date.today()):
-    local_death_data = get_data_by_country(country, type='deaths')
+    local_death_data = get_data_by_country(country, state, type='deaths')
     local_death_data_original = local_death_data.copy()
     daily_local_death_data_original = get_daily_data(local_death_data_original)
     if back_test:
         local_death_data = local_death_data[local_death_data.index.date <= last_data_date]
-    local_confirmed_data = get_data_by_country(country, type='confirmed')
+    local_confirmed_data = get_data_by_country(country, state, type='confirmed')
     daily_local_confirmed_data = get_daily_data(local_confirmed_data)
     daily_metrics, model_beta = get_daily_metrics_from_death_data(local_death_data, forecast_horizon,
                                                                   policy_change_dates, contain_rate, test_rate)
@@ -389,14 +397,14 @@ def get_metrics_by_country(country, forecast_horizon=60, policy_change_dates=[],
     return daily_metrics, cumulative_metrics, model_beta
 
 
-def get_metrics_by_state_US(state, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8, test_rate=0.2,
+def get_metrics_by_state_US(state, county='All', forecast_horizon=60, policy_change_dates=[], contain_rate=0.8, test_rate=0.2,
                             back_test=False, last_data_date=dt.date.today()):
-    local_death_data = get_data_by_state(state, type='deaths')
+    local_death_data = get_data_by_state(state, county, type='deaths')
     local_death_data_original = local_death_data.copy()
     daily_local_death_data_original = get_daily_data(local_death_data_original)
     if back_test:
         local_death_data = local_death_data[local_death_data.index.date <= last_data_date]
-    local_confirmed_data = get_data_by_state(state, type='confirmed')
+    local_confirmed_data = get_data_by_state(state, county, type='confirmed')
     daily_local_confirmed_data = get_daily_data(local_confirmed_data)
     daily_metrics, model_beta = get_daily_metrics_from_death_data(local_death_data, forecast_horizon,
                                                                   policy_change_dates, contain_rate, test_rate)
@@ -422,9 +430,9 @@ def get_metrics_by_county_and_state_US(county, state, forecast_horizon=60, polic
     return daily_metrics, cumulative_metrics, model_beta
 
 
-def get_log_daily_predicted_death_by_country(country, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8,
-                                             back_test=False, last_data_date=dt.date.today()):
-    local_death_data = get_data_by_country(country, type='deaths')
+def get_log_daily_predicted_death_by_country(country, state='All', forecast_horizon=60, policy_change_dates=[],
+                                             contain_rate=0.8, back_test=False, last_data_date=dt.date.today()):
+    local_death_data = get_data_by_country(country, state, type='deaths')
     local_death_data.columns = ['death']
     local_death_data_original = local_death_data.copy()
     daily_local_death_data_original = get_daily_data(local_death_data_original)
@@ -437,9 +445,9 @@ def get_log_daily_predicted_death_by_country(country, forecast_horizon=60, polic
                       log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
 
 
-def get_log_daily_predicted_death_by_state_US(state, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8,
-                                              back_test=False, last_data_date=dt.date.today()):
-    local_death_data = get_data_by_state(state, type='deaths')
+def get_log_daily_predicted_death_by_state_US(state, county='All', forecast_horizon=60, policy_change_dates=[],
+                                              contain_rate=0.8, back_test=False, last_data_date=dt.date.today()):
+    local_death_data = get_data_by_state(state, county, type='deaths')
     local_death_data.columns = ['death']
     local_death_data_original = local_death_data.copy()
     daily_local_death_data_original = get_daily_data(local_death_data_original)
