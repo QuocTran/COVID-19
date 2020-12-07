@@ -659,6 +659,8 @@ if st.checkbox('Changelog'):
     st.markdown('2020/08/19 Change model and UI to allow more than 2 significant policy change dates such as lock down '
                 'relax')
     st.markdown('2020/08/24 Upgraded Streamlit to version 0.65 Added FB Comments Plugin')
+    st.markdown('2020/12/08 Added forecast for US counties, UK, Canada, and Australia provinces. '
+                'Added Disqus Comment box')
 
 disqus_js = """
 <div id="disqus_thread"></div>
@@ -698,3 +700,4 @@ fb_comments = """
         """
 #st.components.v1.html(fb_comments)
 st.components.v1.iframe('https://covid19.aipert.org/discuss.html', height=400, scrolling=True)
+st.components.v1.iframe('https://covid19.aipert.org/disqus.html', height=400, scrolling=True)
