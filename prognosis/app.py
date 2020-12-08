@@ -340,7 +340,7 @@ if scope == 'World':
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')
-    local = st.sidebar.selectbox('Country', death_data.Country.unique(), index=176)
+    local = st.sidebar.selectbox('Country', death_data.Country.unique(), index=177)
     local_sub_level = st.sidebar.selectbox('Province/State', ['All', ] + death_data.query('Country == "{}"'\
                                                         .format(local)).State.dropna().unique().tolist(), index=0)
     forecast_fun = mu.get_metrics_by_country
