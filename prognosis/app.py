@@ -419,7 +419,7 @@ if st.sidebar.button('Run'):
 st.sidebar.subheader('Authors')
 st.sidebar.info(
 """
-Quoc Tran [LinkedIn](www.linkedin.com/in/quoc-tran-wml)  
+Quoc Tran [LinkedIn](https://www.linkedin.com/in/quoc-tran-wml)  
 Huong Huynh [LinkedIn](https://www.linkedin.com/in/huonghuynhsjsu)  
 Lam Ho [Website](https://www.dal.ca/faculty/science/math-stats/faculty-staff/our-faculty/statistics/lam-ho.html)    
 Feedback: hthuongsc@gmail.com  
