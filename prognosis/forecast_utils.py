@@ -23,7 +23,7 @@ def get_epiweek_enddate(x):
     return epiweeks.Week.fromdate(pd.to_datetime(x).date()).enddate()
 
 
-def get_target_str(target_end_date):
+def get_target_str(target_end_date, forecast_date, target_metric, target_aggr):
     forecast_date_week_end = get_epiweek_enddate(forecast_date)
     target = '{week} wk ahead {target_aggr} {target_metric}'\
         .format(week=(target_end_date - forecast_date_week_end).days//7 + 1,
@@ -39,7 +39,9 @@ def format_forecast(input_forecast,
                     target_aggr):
     forecast_date = pd.to_datetime(forecast_date).date()
     input_forecast['target_end_date'] = input_forecast.date.apply(get_epiweek_enddate)
-    input_forecast['target'] = input_forecast.target_end_date.apply(get_target_str)
+    input_forecast['target'] = input_forecast.target_end_date.apply(get_target_str, args=(forecast_date,
+                                                                                          target_metric,
+                                                                                          target_aggr))
     input_forecast['forecast_date'] = forecast_date
     input_forecast['location'] = fips.query('location_name == @location_name').location.iloc[0]
     input_forecast['quantile'] = 'NA'
@@ -98,13 +100,39 @@ def generate_US_formatted_forecast(forecast_date, target_metric='death', target_
         except (ValueError, IndexError):
             pass
 
-    US_forecast.to_csv('{}-AIpert-pwllnod.csv'.format(forecast_date), index=False)
+    US_forecast.to_csv('data_processed/{}-AIpert-pwllnod.csv'.format(forecast_date), index=False)
+
+
+def generate_world_formatted_forecast(forecast_date, target_metric='death', target_aggr='inc'):
+    world_forecast = generate_formatted_forecast('World', 'US', forecast_date, target_metric, target_aggr)
+    world_forecast = world_forecast.query('target!="9 wk ahead inc death"')
+    forecast_date = pd.to_datetime(forecast_date).date()
+    last_epiweek_enddate = get_epiweek_enddate(forecast_date+epiweeks.timedelta(-7))
+    latest_cum = mu.get_data_by_country('US').loc[last_epiweek_enddate][0]
+    world_forecast = add_cum_forecast(world_forecast, latest_cum)
+    country_list = mu.get_data(scope='World', type='deaths').Country.unique()
+    top_country_list = ['India', 'Brazil', 'Russia', 'France', 'United Kingdom', 'Turkey', 'Italy', 'Spain',
+                        'Germany', 'Colombia', 'Argentina', 'Mexico', 'Poland', 'Iran', 'Iraq', 'Ukraine',
+                        'South Africa', 'Peru', 'Netherlands', 'Belgium', 'Chile', 'Romania', 'Canada',
+                        'Ecuador', 'Czechia', 'Pakistan', 'Hungary', 'Philippines', 'Switzerland']
+
+    for country in top_country_list:
+        try:
+            print(country)
+            country_forecast = generate_formatted_forecast('World', country, forecast_date)\
+                .query('target!="9 wk ahead inc death"')
+            latest_cum_country = mu.get_data_by_country(country).loc[last_epiweek_enddate][0]
+            country_forecast = add_cum_forecast(country_forecast, latest_cum_country)
+            world_forecast = pd.concat([world_forecast, country_forecast])
+        except (ValueError, IndexError):
+            pass
+
+    world_forecast.to_csv('data_processed/World-{}-AIpert-pwllnod.csv'.format(forecast_date), index=False)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate US formatted forecast file')
     parser.add_argument('-d', '--date', default=dt.date.today(), help='date to run forecast, usually Monday,'
-                                                                      'default to today')
+                                                                      ' default to today')
     args = parser.parse_args()
-
     generate_US_formatted_forecast(forecast_date=args.date)
