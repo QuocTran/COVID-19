@@ -110,7 +110,7 @@ def generate_world_formatted_forecast(forecast_date, target_metric='death', targ
     last_epiweek_enddate = get_epiweek_enddate(forecast_date+epiweeks.timedelta(-7))
     latest_cum = mu.get_data_by_country('US').loc[last_epiweek_enddate][0]
     world_forecast = add_cum_forecast(world_forecast, latest_cum)
-    country_list = mu.get_data(scope='World', type='deaths').Country.unique()
+    country_list = mu.get_data(scope='global', type='deaths').Country.unique()
     top_country_list = ['India', 'Brazil', 'Russia', 'France', 'United Kingdom', 'Turkey', 'Italy', 'Spain',
                         'Germany', 'Colombia', 'Argentina', 'Mexico', 'Poland', 'Iran', 'Iraq', 'Ukraine',
                         'South Africa', 'Peru', 'Netherlands', 'Belgium', 'Chile', 'Romania', 'Canada',

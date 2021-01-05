@@ -668,6 +668,7 @@ if st.checkbox('Changelog'):
     st.markdown('2020/08/24 Upgraded Streamlit to version 0.65 Added FB Comments Plugin')
     st.markdown('2020/12/08 Added forecast for US counties, UK, Canada, and Australia provinces. '
                 'Added Disqus Comment box')
+    st.markdown('2021/01/05 Using 7 days moving average and blank out 7 days after policy effective date')
 
 disqus_js = """
 <div id="disqus_thread"></div>
