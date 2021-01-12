@@ -48,6 +48,15 @@ def format_forecast(input_forecast,
     input_forecast['type'] = 'point'
     input_forecast.rename(columns={metric_map[target_metric]: 'value'}, inplace=True)
     output = input_forecast[['forecast_date', 'target', 'target_end_date', 'quantile', 'type', 'value', 'location']]
+    output_lb = input_forecast[['forecast_date', 'target', 'target_end_date', 'lower_bound', 'location']]
+    output_lb.rename(columns={'lower_bound': 'value'}, inplace=True)
+    output_lb['quantile'] = 0.025
+    output_lb['type'] = 'quantile'
+    output_ub = input_forecast[['forecast_date', 'target', 'target_end_date', 'upper_bound', 'location']]
+    output_ub.rename(columns={'upper_bound': 'value'}, inplace=True)
+    output_ub['quantile'] = 0.975
+    output_ub['type'] = 'quantile'
+    output = pd.concat([output, output_lb, output_ub])
     return output.groupby(['forecast_date', 'target', 'target_end_date', 'quantile', 'type', 'location']).sum()\
         .reset_index().query('target_end_date>forecast_date')
 
@@ -75,18 +84,15 @@ def generate_formatted_forecast(scope,
 
 def add_cum_forecast(inc_forecast, last_epi_week_cum):
     cum_forecast = inc_forecast.copy()
-    cum_forecast['value'] = cum_forecast.value.cumsum()+last_epi_week_cum
+    cum_forecast['value'] = cum_forecast.groupby('quantile').value.cumsum()+last_epi_week_cum
     cum_forecast['target'] = cum_forecast.target.str.replace('inc', 'cum')
     return pd.concat([inc_forecast, cum_forecast])
 
 
 def generate_US_formatted_forecast(forecast_date, target_metric='death', target_aggr='inc'):
-    US_forecast = generate_formatted_forecast('World', 'US', forecast_date, target_metric, target_aggr)
-    US_forecast = US_forecast.query('target!="9 wk ahead inc death"')
     forecast_date = pd.to_datetime(forecast_date).date()
     last_epiweek_enddate = get_epiweek_enddate(forecast_date+epiweeks.timedelta(-7))
-    latest_cum_US = mu.get_data_by_country('US').loc[last_epiweek_enddate][0]
-    US_forecast = add_cum_forecast(US_forecast, latest_cum_US)
+    US_forecast = pd.DataFrame()
     US_state_list = mu.get_data(scope='US', type='deaths').State.unique()
 
     for state in US_state_list:
@@ -99,19 +105,20 @@ def generate_US_formatted_forecast(forecast_date, target_metric='death', target_
             US_forecast = pd.concat([US_forecast, state_forecast])
         except (ValueError, IndexError):
             pass
-
-    US_forecast.to_csv('data_processed/{}-AIpert-pwllnod.csv'.format(forecast_date), index=False)
+    # Aggregate all states for US forecast
+    US_forecast_new = US_forecast.groupby(
+        ['forecast_date', 'target', 'target_end_date', 'quantile', 'type']).sum().reset_index()
+    US_forecast_new['location'] = "US"
+    US_forecast_new = pd.concat([US_forecast_new, US_forecast])
+    US_forecast_new.to_csv('data_processed/{}-AIpert-pwllnod.csv'.format(forecast_date), index=False)
 
 
 def generate_world_formatted_forecast(forecast_date, target_metric='death', target_aggr='inc'):
-    world_forecast = generate_formatted_forecast('World', 'US', forecast_date, target_metric, target_aggr)
-    world_forecast = world_forecast.query('target!="9 wk ahead inc death"')
+    world_forecast = pd.DataFrame()
     forecast_date = pd.to_datetime(forecast_date).date()
     last_epiweek_enddate = get_epiweek_enddate(forecast_date+epiweeks.timedelta(-7))
-    latest_cum = mu.get_data_by_country('US').loc[last_epiweek_enddate][0]
-    world_forecast = add_cum_forecast(world_forecast, latest_cum)
     country_list = mu.get_data(scope='global', type='deaths').Country.unique()
-    top_country_list = ['India', 'Brazil', 'Russia', 'France', 'United Kingdom', 'Turkey', 'Italy', 'Spain',
+    top_country_list = ['US', 'India', 'Brazil', 'Russia', 'France', 'United Kingdom', 'Turkey', 'Italy', 'Spain',
                         'Germany', 'Colombia', 'Argentina', 'Mexico', 'Poland', 'Iran', 'Iraq', 'Ukraine',
                         'South Africa', 'Peru', 'Netherlands', 'Belgium', 'Chile', 'Romania', 'Canada',
                         'Ecuador', 'Czechia', 'Pakistan', 'Hungary', 'Philippines', 'Switzerland']
