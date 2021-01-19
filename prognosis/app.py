@@ -199,7 +199,7 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
     st.markdown('Since health care systems vary widely between geographic location, if this is used for planning, '
                 'please check the advance box on the sidebar to update with the appropriate parameters')
     fig = daily.rename(columns={'ICU': 'current_ICU', 'hospital_beds': 'current_hospital_beds'})\
-        .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
+        .drop(columns=['lower_bound', 'upper_bound', '7d_avg_death'], errors='ignore').iplot(asFigure=True)
     x = daily.index
     y_upper = daily.upper_bound.values
     y_lower = daily.lower_bound.values
@@ -273,7 +273,7 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
 
     st.plotly_chart(fig)
 
-    fig = cumulative.drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
+    fig = cumulative.drop(columns=['lower_bound', 'upper_bound', '7d_avg_death'], errors='ignore').iplot(asFigure=True)
     x = cumulative.index
     y_upper = cumulative.upper_bound.values
     y_lower = cumulative.lower_bound.values
@@ -339,6 +339,7 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
     mu.append_row_2_logs([dt.datetime.today(), scope, local, model_beta], 'logs/fitted_models.csv')
 
 
+run_click = st.sidebar.button('Click to run')
 scope = st.sidebar.selectbox('World or US', ['World', 'US'], index=0)
 if scope == 'World':
     #data_load_state = st.text('Loading data...')
@@ -412,7 +413,7 @@ if back_test:
     last_data_date = st.sidebar.date_input('Last date of data', dt.date.today()+dt.timedelta(-14))
     'Run back test with data up to', last_data_date
 
-if st.sidebar.button('Run'):
+if run_click:
     main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
          show_data, back_test, last_data_date)
     model_params = [dt.datetime.today(), scope, local, local_sub_level, policy_change_dates,
@@ -673,6 +674,7 @@ if st.checkbox('Changelog'):
     st.markdown('2020/12/08 Added forecast for US counties, UK, Canada, and Australia provinces. '
                 'Added Disqus Comment box')
     st.markdown('2021/01/05 Using 7 days moving average and blank out 7 days after policy effective date')
+    st.markdown('2021/01/19 Showed 7 days moving average on plots. Move Run button to top')
 
 disqus_js = """
 <div id="disqus_thread"></div>
