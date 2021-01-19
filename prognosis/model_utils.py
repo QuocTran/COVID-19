@@ -301,14 +301,15 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_
     log_predicted_death.columns = ['predicted_death']
     log_predicted_death_lower_bound.columns = ['lower_bound']
     log_predicted_death_upper_bound.columns = ['upper_bound']
-    return log_predicted_death, log_predicted_death_lower_bound, log_predicted_death_upper_bound, regr_pw.beta
+    return log_predicted_death, log_predicted_death_lower_bound, log_predicted_death_upper_bound, regr_pw.beta, \
+        log_daily_death
 
 
 def get_daily_predicted_death(local_death_data, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8):
-    log_daily_predicted_death, lb, ub, model_beta = get_log_daily_predicted_death(local_death_data,
-                                                                                  forecast_horizon,
-                                                                                  policy_change_dates,
-                                                                                  contain_rate)
+    log_daily_predicted_death, lb, ub, model_beta, _ = get_log_daily_predicted_death(local_death_data,
+                                                                                     forecast_horizon,
+                                                                                     policy_change_dates,
+                                                                                     contain_rate)
     return np.exp(log_daily_predicted_death), np.exp(lb), np.exp(ub), model_beta
 
 
@@ -337,8 +338,11 @@ def get_daily_metrics_from_death_data(local_death_data, forecast_horizon=60, pol
     lower_length_death = daily_predicted_death - daily_predicted_death_lb
     lower_length_derived = (lower_length_death * 1 / np.sqrt(test_rate)).astype('int', errors='ignore')
 
-    daily_local_death_new = local_death_data.diff().fillna(0)
+    daily_local_death_new = get_daily_data(local_death_data)
     daily_local_death_new.columns = ['death']
+    smoothing_days = 7
+    daily_local_death_avg = daily_local_death_new.rolling(smoothing_days, min_periods=3).mean()
+    daily_local_death_avg.columns = ['7d_avg_death']
     daily_infected_cases_new = get_infected_cases(daily_predicted_death)
     daily_symptomatic_cases_new = get_symptomatic_cases(daily_predicted_death)
     daily_hospitalized_cases_new = get_hospitalized_cases(daily_predicted_death)
@@ -352,6 +356,7 @@ def get_daily_metrics_from_death_data(local_death_data, forecast_horizon=60, pol
     # daily_ICU_need_lb = daily_hospital_beds_need - get_number_ICU_need(lower_length_derived)
 
     return pd.concat([daily_local_death_new,
+                      daily_local_death_avg,
                       daily_predicted_death,
                       daily_predicted_death_lb,
                       daily_predicted_death_ub,
@@ -366,7 +371,7 @@ def get_cumulative_metrics_from_death_data(local_death_data, forecast_horizon=60
                                            test_rate=0.2):
     daily_metrics, model_beta = get_daily_metrics_from_death_data(local_death_data, forecast_horizon,
                                                                   policy_change_dates, contain_rate, test_rate)
-    cumulative_metrics = daily_metrics.drop(columns=['ICU', 'hospital_beds']).cumsum()
+    cumulative_metrics = daily_metrics.drop(columns=['ICU', 'hospital_beds', '7d_avg_death']).cumsum()
     # data_end_date = max(local_death_data.index)
     # cumulative_metrics['lower_bound'] = daily_metrics['lower_bound']
     # cumulative_metrics['lower_bound'].loc[local_death_data.index] = np.nan
@@ -395,7 +400,7 @@ def get_metrics_by_country(country, state='All', forecast_horizon=60, policy_cha
                                                                   policy_change_dates, contain_rate, test_rate)
     daily_metrics['confirmed'] = daily_local_confirmed_data
     if back_test:
-        daily_metrics['death']= daily_local_death_data_original
+        daily_metrics['death'] = daily_local_death_data_original
     cumulative_metrics = daily_metrics.drop(columns=['ICU', 'hospital_beds']).cumsum()
     cumulative_metrics['ICU'] = daily_metrics['ICU']
     cumulative_metrics['hospital_beds'] = daily_metrics['hospital_beds']
@@ -417,20 +422,7 @@ def get_metrics_by_state_US(state, county='All', forecast_horizon=60, policy_cha
                                                                   policy_change_dates, contain_rate, test_rate)
     daily_metrics['confirmed'] = daily_local_confirmed_data
     if back_test:
-        daily_metrics['death']= daily_local_death_data_original
-    cumulative_metrics = daily_metrics.drop(columns=['ICU', 'hospital_beds']).cumsum()
-    cumulative_metrics['ICU'] = daily_metrics['ICU']
-    cumulative_metrics['hospital_beds'] = daily_metrics['hospital_beds']
-    return daily_metrics, cumulative_metrics, model_beta
-
-
-def get_metrics_by_county_and_state_US(county, state, forecast_horizon=60, policy_change_dates=[]):
-    local_death_data = get_data_by_county_and_state(county, state, type='deaths')
-    local_confirmed_data = get_data_by_county_and_state(county, state, type='confirmed')
-    daily_local_confirmed_data = get_daily_data(local_confirmed_data)
-    daily_metrics, model_beta = get_daily_metrics_from_death_data(local_death_data, forecast_horizon,
-                                                                  policy_change_dates)
-    daily_metrics['confirmed'] = daily_local_confirmed_data
+        daily_metrics['death'] = daily_local_death_data_original
     cumulative_metrics = daily_metrics.drop(columns=['ICU', 'hospital_beds']).cumsum()
     cumulative_metrics['ICU'] = daily_metrics['ICU']
     cumulative_metrics['hospital_beds'] = daily_metrics['hospital_beds']
@@ -440,45 +432,31 @@ def get_metrics_by_county_and_state_US(county, state, forecast_horizon=60, polic
 def get_log_daily_predicted_death_by_country(country, state='All', forecast_horizon=60, policy_change_dates=[],
                                              contain_rate=0.8, back_test=False, last_data_date=dt.date.today()):
     local_death_data = get_data_by_country(country, state, type='deaths')
-    local_death_data.columns = ['death']
+    local_death_data.columns = ['orig_death']
     local_death_data_original = local_death_data.copy()
     daily_local_death_data_original = get_daily_data(local_death_data_original)
     log_daily_death_original = np.log(daily_local_death_data_original)
     if back_test:
         local_death_data = local_death_data[local_death_data.index.date <= last_data_date]
-    log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta = \
-            get_log_daily_predicted_death(local_death_data, forecast_horizon, policy_change_dates)
+    log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta, log_daily_death_avg = \
+        get_log_daily_predicted_death(local_death_data, forecast_horizon, policy_change_dates)
     return pd.concat([log_daily_death_original, log_predicted_death, log_predicted_death_lb,
-                      log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
+                      log_predicted_death_ub, log_daily_death_avg], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
 
 
 def get_log_daily_predicted_death_by_state_US(state, county='All', forecast_horizon=60, policy_change_dates=[],
                                               contain_rate=0.8, back_test=False, last_data_date=dt.date.today()):
     local_death_data = get_data_by_state(state, county, type='deaths')
-    local_death_data.columns = ['death']
+    local_death_data.columns = ['orig_death']
     local_death_data_original = local_death_data.copy()
     daily_local_death_data_original = get_daily_data(local_death_data_original)
     log_daily_death_original = np.log(daily_local_death_data_original)
     if back_test:
         local_death_data = local_death_data[local_death_data.index.date <= last_data_date]
-    log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta = \
+    log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta, log_daily_death_avg = \
         get_log_daily_predicted_death(local_death_data, forecast_horizon, policy_change_dates, contain_rate)
     return pd.concat([log_daily_death_original, log_predicted_death, log_predicted_death_lb,
-                      log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
-
-
-def get_log_daily_predicted_death_by_county_and_state_US(county, state, forecast_horizon=60, policy_change_dates=[],
-                                                         contain_rate=0.8, back_test=False,
-                                                         last_data_date=dt.date.today()):
-    local_death_data = get_data_by_county_and_state(county, state, type='deaths')
-    local_death_data.columns = ['death']
-    local_death_data_original = local_death_data.copy()
-    daily_local_death_data_original = get_daily_data(local_death_data_original)
-    log_daily_death_original = np.log(daily_local_death_data_original)
-    log_predicted_death, log_predicted_death_lb, log_predicted_death_ub, model_beta = \
-        get_log_daily_predicted_death(local_death_data, forecast_horizon, policy_change_dates, contain_rate)
-    return pd.concat([log_daily_death_original, log_predicted_death, log_predicted_death_lb,
-                      log_predicted_death_ub], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
+                      log_predicted_death_ub, log_daily_death_avg], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
 
 
 def append_row_2_logs(row, log_file='logs/model_params_logs.csv'):

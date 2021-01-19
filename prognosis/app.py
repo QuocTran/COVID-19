@@ -56,8 +56,10 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
     data_load_state.text('Forecasting... done!')
 
     st.subheader('Deaths')
-    show_metrics = ['death', 'predicted_death']
-    fig = daily[show_metrics].rename(columns={'death':'observed', 'predicted_death': 'predicted'})\
+    show_metrics = ['death', 'predicted_death', '7d_avg_death']
+    fig = daily[show_metrics].rename(columns={'death': 'observed',
+                                              'predicted_death': 'predicted',
+                                              '7d_avg_death': '7d average observed'})\
         .drop(columns=['ICU', 'hospital_beds'], errors='ignore').iplot(asFigure=True)
     x = daily.index
     y_upper = daily.upper_bound.values
@@ -102,7 +104,9 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
     )
     st.plotly_chart(fig)
 
-    fig = cumulative[show_metrics].rename(columns={'death':'observed', 'predicted_death': 'predicted'})\
+    show_metrics = ['death', 'predicted_death']
+    fig = cumulative[show_metrics].rename(columns={'death': 'observed',
+                                                   'predicted_death': 'predicted'})\
         .iplot(asFigure=True)
     x = cumulative.index
     y_upper = cumulative.upper_bound.values
@@ -149,8 +153,8 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
     if show_debug:
         log_fit, _ = debug_fun(local, local_sub_level, forecast_horizon=forecast_horizon, policy_change_dates=policy_change_dates,
                                back_test=back_test, last_data_date=last_data_date)
-        fig = log_fit.rename(columns={'death':'observed', 'predicted_death': 'predicted'})\
-            .drop(columns=['lower_bound', 'upper_bound'], errors='ignore').iplot(asFigure=True)
+        fig = log_fit.rename(columns={'death': '7d_avg_observed', 'orig_death': 'observed', 'predicted_death': 'predicted'})\
+            .drop(columns=['lower_bound', 'upper_bound', 'time_idx'], errors='ignore').iplot(asFigure=True)
         x = log_fit.index
         y_upper = log_fit.upper_bound.values
         y_lower = log_fit.lower_bound.values
@@ -325,7 +329,7 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
     if show_data:
         st.subheader('Raw Output Data')
         st.markdown(mu.get_table_download_link(daily,
-                    filename= 'daily_'+local+'_'+local_sub_level+'_'+str(dt.date.today())+'.csv'),
+                    filename='daily_'+local+'_'+local_sub_level+'_'+str(dt.date.today())+'.csv'),
                     unsafe_allow_html=True)
         st.write('Daily metrics', daily)
         st.markdown(mu.get_table_download_link(cumulative,
