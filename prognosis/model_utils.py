@@ -253,6 +253,7 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_
     #daily_local_death_new = daily_local_death_new.shift(1)
     daily_local_death_avg.columns = ['death']
     log_daily_death = np.log(daily_local_death_avg)
+    log_daily_death_orig = log_daily_death.copy()
     # log_daily_death.dropna(inplace=True)
     data_start_date = min(daily_local_death_avg.index)
     data_end_date = max(daily_local_death_avg.index)
@@ -302,7 +303,7 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_
     log_predicted_death_lower_bound.columns = ['lower_bound']
     log_predicted_death_upper_bound.columns = ['upper_bound']
     return log_predicted_death, log_predicted_death_lower_bound, log_predicted_death_upper_bound, regr_pw.beta, \
-        log_daily_death
+        log_daily_death_orig
 
 
 def get_daily_predicted_death(local_death_data, forecast_horizon=60, policy_change_dates=[], contain_rate=0.8):

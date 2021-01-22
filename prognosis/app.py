@@ -345,7 +345,7 @@ if scope == 'World':
     #data_load_state = st.text('Loading data...')
     death_data = mu.get_data(scope='global', type='deaths')
     #data_load_state.text('Loading data... done!')
-    local = st.sidebar.selectbox('Country', death_data.Country.unique(), index=177)
+    local = st.sidebar.selectbox('Country', death_data.Country.unique(), index=178)
     local_sub_level = st.sidebar.selectbox('Province/State', ['All', ] + death_data.query('Country == "{}"'\
                                                         .format(local)).State.dropna().unique().tolist(), index=0)
     forecast_fun = mu.get_metrics_by_country
@@ -713,5 +713,6 @@ fb_comments = """
         <div class="fb-comments" data-href="https://covid19.aipert.org" data-numposts="5" data-width=""></div>
         """
 #st.components.v1.html(fb_comments)
-st.components.v1.iframe('https://covid19.aipert.org/discuss.html', height=400, scrolling=True)
-st.components.v1.iframe('https://covid19.aipert.org/disqus.html', height=400, scrolling=True)
+if st.checkbox('Show comments'):
+    st.components.v1.iframe('https://covid19.aipert.org/discuss.html', height=400, scrolling=True)
+    st.components.v1.iframe('https://covid19.aipert.org/disqus.html', height=400, scrolling=True)
