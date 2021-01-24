@@ -713,6 +713,7 @@ fb_comments = """
         <div class="fb-comments" data-href="https://covid19.aipert.org" data-numposts="5" data-width=""></div>
         """
 #st.components.v1.html(fb_comments)
+st.components.v1.iframe('https://covid19.aipert.org/google_analytics.html', height=1, scrolling=False)
 if st.checkbox('Show comments'):
     st.components.v1.iframe('https://covid19.aipert.org/discuss.html', height=400, scrolling=True)
     st.components.v1.iframe('https://covid19.aipert.org/disqus.html', height=400, scrolling=True)
