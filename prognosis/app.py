@@ -19,7 +19,7 @@ mu.ICU_2_DEATH_TIME = 4
 mu.ICU_2_RECOVER_TIME = 7
 mu.NOT_ICU_DISCHARGE_TIME = 5
 
-st.beta_set_page_config(
+st.set_page_config(
     page_title="Covid-19 Prediction",
     initial_sidebar_state="expanded",
 )
@@ -380,8 +380,21 @@ show_debug = st.sidebar.checkbox('Show fitted log death', value=True)
     'Click **Run** on left sidebar to see forecast. Plot is interactive. Work best on desktop.'
 show_data = st.sidebar.checkbox('Show raw output data')
 
+metrics = ['infected']
+if st.sidebar.checkbox('Hide some metrics'):
+    metrics = st.sidebar.multiselect('Which metrics you like to be invisible by default?',
+                                     ('death', 'predicted_death', 'infected', 'symptomatic',
+                                      'hospitalized', 'confirmed', 'ICU', 'hospital_beds'),
+                                     metrics)
+
+back_test = st.sidebar.checkbox('Run back test to evaluate')
+last_data_date = dt.date.today()
+if back_test:
+    last_data_date = st.sidebar.date_input('Last date of data', dt.date.today()+dt.timedelta(-14))
+    'Run back test with data up to', last_data_date
+
 if st.sidebar.checkbox('Advance: change assumptions'):
-    if st.sidebar.checkbox('Change rates'):
+    if st.sidebar.checkbox('Change rates - percentages'):
         mu.DEATH_RATE = st.sidebar.slider('Overall death rate', value=mu.DEATH_RATE,
                                        min_value=0.01, max_value=10.0, step=0.01)
         mu.ICU_RATE = st.sidebar.slider('ICU rate', value=max(mu.ICU_RATE, mu.DEATH_RATE),
@@ -390,7 +403,7 @@ if st.sidebar.checkbox('Advance: change assumptions'):
                                        min_value=mu.ICU_RATE, max_value=20.0, step=0.01)
         mu.SYMPTOM_RATE = st.sidebar.slider('Symptomatic rate', value=max(mu.SYMPTOM_RATE, mu.HOSPITAL_RATE),
                                        min_value=mu.HOSPITAL_RATE, max_value=25.0, step=0.01)
-    if st.sidebar.checkbox('Change time'):
+    if st.sidebar.checkbox('Change time - days'):
         mu.INFECT_2_HOSPITAL_TIME = st.sidebar.slider('Time to hospitalized since infected',
                                                       value=mu.INFECT_2_HOSPITAL_TIME, min_value=1, max_value=21)
         mu.HOSPITAL_2_ICU_TIME = st.sidebar.slider('Time to ICU since hospitalized',
@@ -401,17 +414,6 @@ if st.sidebar.checkbox('Advance: change assumptions'):
                                                       value=mu.ICU_2_RECOVER_TIME, min_value=1, max_value=30)
         mu.NOT_ICU_DISCHARGE_TIME = st.sidebar.slider('Time to discharge',
                                                       value=mu.NOT_ICU_DISCHARGE_TIME, min_value=1, max_value=21)
-metrics = ['infected']
-if st.sidebar.checkbox('Hide some metrics'):
-    metrics = st.sidebar.multiselect('Which metrics you like to be invisible by default?',
-                                     ('death', 'predicted_death', 'infected', 'symptomatic',
-                                      'hospitalized', 'confirmed', 'ICU', 'hospital_beds'),
-                                     metrics)
-back_test = st.sidebar.checkbox('Run back test to evaluate')
-last_data_date = dt.date.today()
-if back_test:
-    last_data_date = st.sidebar.date_input('Last date of data', dt.date.today()+dt.timedelta(-14))
-    'Run back test with data up to', last_data_date
 
 if run_click:
     main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, forecast_fun, debug_fun, metrics, show_debug,
@@ -433,7 +435,7 @@ Data Source: [JHU](https://coronavirus.jhu.edu/map.html)
 """
 )
 
-if st.checkbox('About the model'):
+with st.beta_expander('About the model'):
     st.subheader('Assumptions')
     st.markdown('''
             Number of **DEATH** is the most accurate metric, despite [undercount]
@@ -532,7 +534,7 @@ if st.checkbox('About the model'):
             curve after lock down period relaxed.          
             2. Upgrade the calculation using mean to use distribution if enough data is available.
             3. Use SEIR model when number of infected cases near 20% of population.''')
-if st.checkbox('Medical myths'):
+with st.beta_expander('Medical myths'):
     st.markdown('I am not a medical doctor. I am a statistician but I strongly believe in this:')
     st.subheader('How Vietnamese doctors treat SARS before and COVID19 now?')
     st.markdown('''
@@ -593,7 +595,7 @@ if st.checkbox('Medical myths'):
     st.markdown('***Please spread the message and stay safe!***')
     mu.append_row_2_logs([dt.datetime.today(), ], log_file='logs/medical_myths_logs.csv')
 
-if st.checkbox('References'):
+with st.beta_expander('References'):
     st.markdown('[IHME COVID-19 Infection Spread](https://covid19.healthdata.org) '
                 'Reason we speed up our development. Lots of thing to like. One thing '
                 'we would do differently, the forecasting model.')
@@ -657,7 +659,7 @@ if st.checkbox('References'):
                 '(https://www.msn.com/en-xl/health/coronavirus/air-conditioning-appears-to-spread-coronavirus—but-opening-windows-could-stop-it-studies-suggest/ar-BB12GeD1)')
 
 
-if st.checkbox('Changelog'):
+with st.beta_expander('Changelog'):
     st.markdown('2020/04/22 Big change on the default parameters about rates using the New York study, which suggests '
                 'asymptomatic rate is 88 percent and death rate is 1 percent. This is now in line with the Chinese study'
                 ' . We only need to divide every rate in Chinese study by 2.3. So hospitalized reduced to 6 pct and ICU'
@@ -714,6 +716,6 @@ fb_comments = """
         """
 #st.components.v1.html(fb_comments)
 st.components.v1.iframe('https://covid19.aipert.org/google_analytics.html', height=1, scrolling=False)
-if st.checkbox('Show comments'):
+with st.beta_expander('Show comments'):
     st.components.v1.iframe('https://covid19.aipert.org/discuss.html', height=400, scrolling=True)
     st.components.v1.iframe('https://covid19.aipert.org/disqus.html', height=400, scrolling=True)
