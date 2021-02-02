@@ -47,7 +47,12 @@ def format_forecast(input_forecast,
     input_forecast['quantile'] = 'NA'
     input_forecast['type'] = 'point'
     input_forecast.rename(columns={metric_map[target_metric]: 'value'}, inplace=True)
+    input_forecast['lower_bound_50'] = input_forecast.value - \
+                                       (input_forecast.value - input_forecast.lower_bound)*(0.67449/1.95996)
+    input_forecast['upper_bound_50'] = input_forecast.value + \
+                                       (input_forecast.upper_bound - input_forecast.value)*(0.67449 / 1.95996)
     output = input_forecast[['forecast_date', 'target', 'target_end_date', 'quantile', 'type', 'value', 'location']]
+
     output_lb = input_forecast[['forecast_date', 'target', 'target_end_date', 'lower_bound', 'location']]
     output_lb.rename(columns={'lower_bound': 'value'}, inplace=True)
     output_lb['quantile'] = 0.025
@@ -56,7 +61,16 @@ def format_forecast(input_forecast,
     output_ub.rename(columns={'upper_bound': 'value'}, inplace=True)
     output_ub['quantile'] = 0.975
     output_ub['type'] = 'quantile'
-    output = pd.concat([output, output_lb, output_ub])
+
+    output_lb_50 = input_forecast[['forecast_date', 'target', 'target_end_date', 'lower_bound_50', 'location']]
+    output_lb_50.rename(columns={'lower_bound_50': 'value'}, inplace=True)
+    output_lb_50['quantile'] = 0.25
+    output_lb_50['type'] = 'quantile'
+    output_ub_50 = input_forecast[['forecast_date', 'target', 'target_end_date', 'upper_bound_50', 'location']]
+    output_ub_50.rename(columns={'upper_bound_50': 'value'}, inplace=True)
+    output_ub_50['quantile'] = 0.75
+    output_ub_50['type'] = 'quantile'
+    output = pd.concat([output, output_lb, output_ub, output_lb_50, output_ub_50])
     return output.groupby(['forecast_date', 'target', 'target_end_date', 'quantile', 'type', 'location']).sum()\
         .reset_index().query('target_end_date>forecast_date')
 

@@ -366,7 +366,7 @@ else:
 default_dates = policy_date_fun(local)
 default_dates = [to_datetime(pdate).date() for pdate in default_dates]
 default_dates = list(filter(None, default_dates))
-date_options = date_range(start='2020/02/01', end=dt.date.today()+dt.timedelta(30)).tolist()
+date_options = date_range(start='2020/02/01', end=dt.date.today()+dt.timedelta(7)).tolist()
 date_options = default_dates + [s.date() for s in date_options[::-1]]
 policy_change_dates = st.sidebar.multiselect('Significant policy change dates, e.g. lockdown, relax, mask policy ..'
                                              'IMPORTANT to get good forecast',
