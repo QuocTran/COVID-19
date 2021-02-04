@@ -593,7 +593,7 @@ with st.beta_expander('Medical myths'):
     with lots of people, such as airplane, subway, church, air conditioning restaurant, etc.., 
     and ***wear mask***.''')
     st.markdown('***Please spread the message and stay safe!***')
-    mu.append_row_2_logs([dt.datetime.today(), ], log_file='logs/medical_myths_logs.csv')
+    mu.append_row_2_logs([dt.datetime.today(), ], log_file='prognosis/logs/medical_myths_logs.csv')
 
 with st.beta_expander('References'):
     st.markdown('[IHME COVID-19 Infection Spread](https://covid19.healthdata.org) '
