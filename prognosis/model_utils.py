@@ -101,7 +101,7 @@ def get_data_by_county_and_state(county, state, type='deaths'):
 
 
 def get_policy_change_dates_by_country(country):
-    policy = json.load(open('data/lockdown_date_country.json', 'r'))
+    policy = json.load(open('prognosis/data/lockdown_date_country.json', 'r'))
     try:
         policy_change_dates = policy[country]
     except KeyError:
