@@ -43,7 +43,7 @@ from csv import writer
 #NOT_ICU_DISCHARGE_TIME = 7
 
 
-def get_data(file_template='../csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_{type}_{scope}.csv',
+def get_data(file_template='csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_{type}_{scope}.csv',
             type='deaths', scope='global'):
     """
     type = enum('deaths', 'confirmed', 'recovered'),
@@ -57,7 +57,7 @@ def get_data(file_template='../csse_covid_19_data/csse_covid_19_time_series/time
                                                  "Admin2": "County"})
 
 
-def get_US_State_hospital_cap_data(file_template='data/Hospital_Capacity_by_State_Harvard.csv'):
+def get_US_State_hospital_cap_data(file_template='prognosis/data/Hospital_Capacity_by_State_Harvard.csv'):
     """
     Get total hospital beds and ICUs for all US states
     """
@@ -110,7 +110,7 @@ def get_policy_change_dates_by_country(country):
 
 
 def get_policy_change_dates_by_state_US(state):
-    policy = json.load(open('data/lockdown_date_state_US.json', 'r'))
+    policy = json.load(open('prognosis/data/lockdown_date_state_US.json', 'r'))
     try:
         policy_change_dates = policy[state]
     except KeyError:
@@ -460,7 +460,7 @@ def get_log_daily_predicted_death_by_state_US(state, county='All', forecast_hori
                       log_predicted_death_ub, log_daily_death_avg], axis=1).replace([np.inf, -np.inf], np.nan), model_beta
 
 
-def append_row_2_logs(row, log_file='logs/model_params_logs.csv'):
+def append_row_2_logs(row, log_file='prognosis/logs/model_params_logs.csv'):
     # Open file in append mode
     with open(log_file, 'a+', newline='') as write_obj:
         # Create a writer object from csv module

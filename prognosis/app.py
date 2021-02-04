@@ -45,12 +45,12 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
     except ValueError as e:
         st.error('Not enough fatality data to provide prognosis, also, please check input and lockdown date')
         mu.append_row_2_logs([dt.datetime.today(), scope, local, local_sub_level, policy_change_dates, forecast_horizon,
-                              last_data_date, e], 'logs/app_errors.log')
+                              last_data_date, e], 'prognosis/logs/app_errors.log')
         return None
     except IndexError as e:
         st.error('You found a bug in the code. Let me report it to my master!')
         mu.append_row_2_logs([dt.datetime.today(), scope, local, local_sub_level, policy_change_dates, forecast_horizon,
-                              last_data_date, e], 'logs/app_errors.log')
+                              last_data_date, e], 'prognosis/logs/app_errors.log')
         return None
 
     data_load_state.text('Forecasting... done!')
@@ -336,7 +336,7 @@ def main(scope, local, local_sub_level, policy_change_dates, forecast_horizon, f
                     filename='cumulative_' + local + '_'+local_sub_level+'_' + str(dt.date.today()) + '.csv'),
                     unsafe_allow_html=True)
         st.write('Cumulative metrics', cumulative)
-    mu.append_row_2_logs([dt.datetime.today(), scope, local, model_beta], 'logs/fitted_models.csv')
+    mu.append_row_2_logs([dt.datetime.today(), scope, local, model_beta], 'prognosis/logs/fitted_models.csv')
 
 
 run_click = st.sidebar.button('Click to run')
