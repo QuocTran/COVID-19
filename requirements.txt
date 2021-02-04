@@ -1,0 +1,10 @@
+streamlit==0.75.0
+epiweeks==2.1.2
+numpy==1.16.2
+matplotlib==3.0.3
+plotly==4.6.0
+pandas==1.0.1
+cufflinks==0.17.3
+scipy==1.2.1
+pyDOE==0.3.8
+scikit_learn==0.24.1
