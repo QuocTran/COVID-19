@@ -243,12 +243,12 @@ def get_log_daily_predicted_death(local_death_data, forecast_horizon=60, policy_
     smoothing_days = 7
     daily_local_death_avg = daily_local_death_new.rolling(smoothing_days, min_periods=3).mean()
     # Because of this smoothing step, we need to time var of prediction by smoothing_days=3.
-    # Rolling set the label at the right edge of the windows, so we need to blank out the first 6 days after
+    # Rolling set the label at the right edge of the windows, so we need to blank out the first 7 days after
     # policy effective dates since it mixes before and after change curve
     for policy_effective_date in policy_effective_dates:
         daily_local_death_avg = daily_local_death_avg.loc[
-            (daily_local_death_avg.index >= policy_effective_date + dt.timedelta(smoothing_days)) |
-            (daily_local_death_avg.index < policy_effective_date)]
+            (daily_local_death_avg.index > policy_effective_date + dt.timedelta(smoothing_days)) |
+            (daily_local_death_avg.index <= policy_effective_date)]
     #shift ahead 1 day to avoid overfitted due to average of exponential value
     #daily_local_death_new = daily_local_death_new.shift(1)
     daily_local_death_avg.columns = ['death']
