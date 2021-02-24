@@ -215,7 +215,7 @@ FIPS,Admin2,Province_State,Country_Region,Last_Update,Lat,Long_,Confirmed,Deaths
 ,,Saint Pierre and Miquelon,France,2021-02-20 05:22:51,46.8852,-56.3159,24,0,16,8,"Saint Pierre and Miquelon, France",414.1501294219154,0.0
 ,,St Martin,France,2021-02-20 05:22:51,18.0708,-63.0501,1497,12,1050,435,"St Martin, France",3872.3195116273055,0.8016032064128257
 ,,Wallis and Futuna,France,2021-02-20 05:22:51,-14.2938,-178.1165,9,0,5,4,"Wallis and Futuna, France",58.865851265615795,0.0
-,,,France,2021-02-20 05:22:51,46.2276,2.2137,3517166,82971,221252,3212943,France,5388.351097149484,2.359029969014826
+,,,France,2021-02-20 05:22:51,46.2276,2.2137,3541282,83542,221252,3212943,France,5388.351097149484,2.359029969014826
 ,,,Gabon,2021-02-20 05:22:51,-0.8037,11.6094,13553,75,12262,1216,Gabon,608.9243609281998,0.5533830148306648
 ,,,Gambia,2021-02-20 05:22:51,13.4432,-15.3101,4543,143,3933,467,Gambia,187.9864143298365,3.1476997578692494
 ,,,Georgia,2021-02-20 05:22:51,42.3154,43.3569,267701,3406,260597,3698,Georgia,6710.685793428465,1.2723150081620913
@@ -3966,6 +3966,7 @@ FIPS,Admin2,Province_State,Country_Region,Last_Update,Lat,Long_,Confirmed,Deaths
 ,,Isle of Man,United Kingdom,2021-02-20 05:22:51,54.2361,-4.5481,449,25,409,15,"Isle of Man, United Kingdom",528.0365039044125,5.567928730512249
 ,,Montserrat,United Kingdom,2021-02-20 05:22:51,16.742498,-62.187366,20,1,13,6,"Montserrat, United Kingdom",400.0800160032006,5.0
 ,,Northern Ireland,United Kingdom,2021-02-20 05:22:51,54.7877,-6.4923,110440,2026,0,108414,"Northern Ireland, United Kingdom",5869.472789115645,1.8344802607750814
+,,"Saint Helena, Ascension and Tristan da Cunha",United Kingdom,2021-02-20 05:22:51,-7.9467,-14.3559,4,0,4,0,"Saint Helena, Ascension and Tristan da Cunha, United Kingdom",,
 ,,Scotland,United Kingdom,2021-02-20 05:22:51,56.4907,-4.2026,195839,6916,0,188923,"Scotland, United Kingdom",3584.628338183881,3.5314722808020873
 ,,Turks and Caicos Islands,United Kingdom,2021-02-20 05:22:51,21.694000000000006,-71.7979,1984,13,1690,281,"Turks and Caicos Islands, United Kingdom",5124.231623534273,0.655241935483871
 ,,Unknown,United Kingdom,2021-02-20 05:22:51,,,0,0,0,0,"Unknown, United Kingdom",,
